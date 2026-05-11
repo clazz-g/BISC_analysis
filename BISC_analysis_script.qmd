@@ -1,0 +1,24 @@
+---
+title: "BISC_analysis"
+author: "Clazz"
+format: html
+editor: source
+---
+
+```{r, include = F}
+
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, VIM, ggpubr, ggeffects, car, sjPlot,caret, ggrain, emmeans, skimr, lavaan, patchwork, lme4, lmerTest, gtsummary, huxtable, readxl, broom.mixed, pwrss, mediation)
+
+```
+
+```{r}
+data<-read_csv("G:/My Drive/Data/BISC/1115_barcelonabeta_cognition_v3/data_cleaned/basic_dataset.csv")
+ 
+
+biomarkers<-read_csv("G:/My Drive/Data/BISC/1115_barcelonabeta_cognition_v3/data_cleaned/biomarkers.csv")
+
+data_biomarkers<-right_join(data, biomarkers)
+```
+
