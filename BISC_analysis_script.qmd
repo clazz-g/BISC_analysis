@@ -9,8 +9,9 @@ editor: source
 
 if (!require("pacman")) install.packages("pacman")
 
-pacman::p_load(tidyverse, VIM, ggpubr, ggeffects, car, sjPlot,caret, ggrain, emmeans, skimr, lavaan, patchwork, lme4, lmerTest, gtsummary, huxtable, readxl, broom.mixed, pwrss, mediation)
+pacman::p_load(tidyverse, VIM, ggpubr, ggeffects, car, sjPlot,caret, ggrain, emmeans, skimr, lavaan, patchwork, lme4, lmerTest, gtsummary, gt, huxtable, readxl, broom.mixed, pwrss, mediation)
 
+source("C:/Users/U253662/Documents/git/functions/jt_plot_aesthetics.R")
 ```
 
 ```{r}
@@ -19,6 +20,896 @@ data<-read_csv("G:/My Drive/Data/BISC/1115_barcelonabeta_cognition_v3/data_clean
 
 biomarkers<-read_csv("G:/My Drive/Data/BISC/1115_barcelonabeta_cognition_v3/data_cleaned/biomarkers.csv")
 
-data_biomarkers<-right_join(data, biomarkers)
+data_biomarkers<-right_join(data, biomarkers)%>%
+  pivot_wider(names_from = Biomarker, values_from = Result_numeric)%>%
+  mutate(gest_age = as.numeric(as.Date(Date)-as.Date(date_last_period)))
+
+
+#gestational age for each timepoint
+
+
+```
+# Descriptives and first look
+```{r}
+
+data_table<-data_biomarkers%>%
+  group_by(subject)%>%
+  mutate(number_visits = n())%>%
+  slice_head()%>%
+  ungroup()%>%
+  dplyr::select(-subject, -Visit, -Units, -Date, -date_last_period, -pTau217, -GFAP, -NFL)
+
+desc_table<-tbl_summary(data_table)%>%
+  add_n()%>%
+  modify_header(label = "**Variables**") %>% # update the column header
+  bold_labels()
+
+desc_table
+```
+
+```{r}
+
+ggplot(data= data_biomarkers, aes(x=gest_age, y=log(pTau217)))+
+  geom_line(aes(x=gest_age, y=log(pTau217), group = subject), alpha= 0.3)+
+  geom_point(alpha= 0.2)+
+  th
+
+ggplot(data= data_biomarkers, aes(x=gest_age, y=log(GFAP)))+
+  geom_line(aes(x=gest_age, y=log(GFAP), group = subject), alpha= 0.3)+
+  geom_point(alpha= 0.2)+
+  th
+
+ggplot(data= data_biomarkers, aes(x=gest_age, y=log(NFL)))+
+  geom_line(aes(x=gest_age, y=log(NFL), group = subject), alpha= 0.3)+
+  geom_point(alpha= 0.2)+
+  th
+```
+
+
+# Analysis whole data (deprecated)
+
+Analysis plan: 
+- single polynomials <- this + slopes to predict V4
+- natural splines
+- GAM?
+- what about looking at only 1st 3 visits? than use the visit 4 to compare
+
+##ptau217
+
+```{r}
+library(ggeffects)
+
+fit_linear <- lmer(log(pTau217) ~ gest_age + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+fit_poly2 <- lmer(log(pTau217) ~ poly(gest_age, 2) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+fit_poly3  <- lmer(log(pTau217) ~ poly(gest_age, 3) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+
+# Create prediction grid
+new_data <- data.frame(
+  gest_age  = seq(min(data_biomarkers$gest_age), max(data_biomarkers$gest_age), length.out = 200),
+  age_v1    = mean(data_biomarkers$age_v1, na.rm = TRUE),
+  education = names(sort(table(data_biomarkers$education), decreasing = TRUE))[1],
+  ethnicity = names(sort(table(data_biomarkers$ethnicity), decreasing = TRUE))[1]
+)
+
+# Get predictions from each model
+new_data$linear <- predict(fit_linear, newdata = new_data, re.form = NA)
+new_data$poly2  <- predict(fit_poly2,  newdata = new_data, re.form = NA)
+new_data$poly3  <- predict(fit_poly3,  newdata = new_data, re.form = NA)
+
+
+new_data_long <- new_data %>%
+  pivot_longer(cols = c(linear, poly2, poly3), names_to = "model", values_to = "predicted")
+
+# Plot
+ggplot() +
+  geom_point(data = data_biomarkers, aes(x = gest_age, y = log(pTau217)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data_long, aes(x = gest_age, y = predicted, 
+             color = model, linetype = model), linewidth = 1) +
+  scale_color_manual(values = c(linear = "steelblue", poly2 = "seagreen4", poly3 = "firebrick"),
+                     labels = c("Linear","Quadratic polynomial", "Cubic polynomial")) +
+  scale_linetype_manual(values = c(linear = "dashed", poly2 = "dotdash", poly3 = "solid"),
+                        labels = c("Linear", "Quadratic polynomial", "Cubic polynomial")) +
+  labs(x = "Gestational Age", y = "log(pTau217)", color = "Model", linetype = "Model") +
+  theme_classic()
+
+library(splines)
+
+# First, identify the gest_age value corresponding to birth (timepoint 3)
+birth_knot <- median(data_biomarkers$gest_age[data_biomarkers$Visit == 3], na.rm = TRUE)
+
+fit_spline <- lmer(log(pTau217) ~ ns(gest_age, knots = birth_knot) +
+                   age_v1 + education + ethnicity + (1|subject),
+                   data = data_biomarkers)
+summary(fit_spline)
+
+
+
+new_data$predicted <- predict(fit_spline, newdata = new_data, re.form = NA)
+
+ggplot() +
+  geom_point(data = data_biomarkers, aes(x = gest_age, y = log(pTau217)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data, aes(x = gest_age, y = predicted), 
+            color = "firebrick", linewidth = 1) +
+  geom_vline(xintercept = birth_knot, linetype = "dashed", color = "gray40") +
+  annotate("text", x = birth_knot, y = Inf, label = "Birth", 
+           vjust = 2, hjust = -0.1, color = "gray40") +
+  labs(x = "Gestational Age", y = "log(pTau217)") +
+  theme_classic()
+
+library(mgcv)
+fit_gam<-gamm(log(NFL) ~ s(gest_age, k=10) + age_v1 + education+ ethnicity,random = list(subject = ~1),data = data_biomarkers)
+summary(fit_gam)
+gam.check(fit_gam$gam)
+
+new_data <- data.frame(
+  gest_age  = seq(min(data_biomarkers$gest_age), max(data_biomarkers$gest_age), length.out = 200),
+  age_v1    = mean(data_biomarkers$age_v1, na.rm = TRUE),
+   education = names(sort(table(data_biomarkers$education), decreasing = TRUE))[1],
+  ethnicity = names(sort(table(data_biomarkers$ethnicity), decreasing = TRUE))[1]
+)
+
+# predict.gam returns se.fit so you can add a confidence ribbon
+pred <- predict(fit_gam$gam, newdata = new_data, se.fit = TRUE)
+
+new_data$fit    <- pred$fit
+new_data$upper  <- pred$fit + 1.96 * pred$se.fit
+new_data$lower  <- pred$fit - 1.96 * pred$se.fit
+
+ggplot() +
+  geom_point(data = data_biomarkers, aes(x = gest_age, y = log(NFL)),
+             alpha = 0.3, size = 1) +
+  geom_ribbon(data = new_data, aes(x = gest_age, ymin = lower, ymax = upper),
+              alpha = 0.2, fill = "firebrick") +
+  geom_line(data = new_data, aes(x = gest_age, y = fit),
+            color = "firebrick", linewidth = 1) +
+  labs(x = "Gestational Age", y = "log(NFL)") +
+  theme_classic()
+```
+
+##GFAP
+
+```{r}
+
+fit_linear <- lmer(log(GFAP) ~ gest_age + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+fit_poly2 <- lmer(log(GFAP) ~ poly(gest_age, 2) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+fit_poly3  <- lmer(log(GFAP) ~ poly(gest_age, 3) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+
+
+# Create prediction grid
+new_data <- data.frame(
+  gest_age  = seq(min(data_biomarkers$gest_age), max(data_biomarkers$gest_age), length.out = 200),
+  age_v1    = mean(data_biomarkers$age_v1, na.rm = TRUE),
+  education = names(sort(table(data_biomarkers$education), decreasing = TRUE))[1],
+  ethnicity = names(sort(table(data_biomarkers$ethnicity), decreasing = TRUE))[1]
+)
+
+# Get predictions from each model
+new_data$linear <- predict(fit_linear, newdata = new_data, re.form = NA)
+new_data$poly2  <- predict(fit_poly2,  newdata = new_data, re.form = NA)
+new_data$poly3  <- predict(fit_poly3,  newdata = new_data, re.form = NA)
+
+
+new_data_long <- new_data %>%
+  pivot_longer(cols = c(linear, poly2, poly3), names_to = "model", values_to = "predicted")
+
+# Plot
+ggplot() +
+  geom_point(data = data_biomarkers, aes(x = gest_age, y = log(GFAP)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data_long, aes(x = gest_age, y = predicted, 
+             color = model, linetype = model), linewidth = 1) +
+  scale_color_manual(values = c(linear = "steelblue", poly2 = "seagreen4", poly3 = "firebrick"),
+                     labels = c("Linear","Quadratic polynomial", "Cubic polynomial")) +
+  scale_linetype_manual(values = c(linear = "dashed", poly2 = "dotdash", poly3 = "solid"),
+                        labels = c("Linear", "Quadratic polynomial", "Cubic polynomial")) +
+  labs(x = "Gestational Age", y = "log(GFAP)", color = "Model", linetype = "Model") +
+  theme_classic()
+
+
+
+fit_spline <- lmer(log(GFAP) ~ ns(gest_age, knots = birth_knot) +
+                   age_v1 + education + ethnicity + (1|subject),
+                   data = data_biomarkers)
+summary(fit_spline)
+
+new_data$predicted <- predict(fit_spline, newdata = new_data, re.form = NA)
+
+ggplot() +
+  geom_point(data = data_biomarkers, aes(x = gest_age, y = log(GFAP)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data, aes(x = gest_age, y = predicted), 
+            color = "firebrick", linewidth = 1) +
+  geom_vline(xintercept = birth_knot, linetype = "dashed", color = "gray40") +
+  annotate("text", x = birth_knot, y = Inf, label = "Birth", 
+           vjust = 2, hjust = -0.1, color = "gray40") +
+  labs(x = "Gestational Age", y = "log(GFAP)") +
+  theme_classic()
+```
+
+
+##NFL
+
+```{r}
+
+fit_linear <- lmer(log(NFL) ~ gest_age + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+fit_poly2 <- lmer(log(NFL) ~ poly(gest_age, 2) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+fit_poly3  <- lmer(log(NFL) ~ poly(gest_age, 3) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+
+# Create prediction grid
+new_data <- data.frame(
+  gest_age  = seq(min(data_biomarkers$gest_age), max(data_biomarkers$gest_age), length.out = 200),
+  age_v1    = mean(data_biomarkers$age_v1, na.rm = TRUE),
+  education = names(sort(table(data_biomarkers$education), decreasing = TRUE))[1],
+  ethnicity = names(sort(table(data_biomarkers$ethnicity), decreasing = TRUE))[1]
+)
+
+# Get predictions from each model
+new_data$linear <- predict(fit_linear, newdata = new_data, re.form = NA)
+new_data$poly2  <- predict(fit_poly2,  newdata = new_data, re.form = NA)
+new_data$poly3  <- predict(fit_poly3,  newdata = new_data, re.form = NA)
+
+
+new_data_long <- new_data %>%
+  pivot_longer(cols = c(linear, poly2, poly3), names_to = "model", values_to = "predicted")
+
+# Plot
+ggplot() +
+  geom_point(data = data_biomarkers, aes(x = gest_age, y = log(NFL)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data_long, aes(x = gest_age, y = predicted, 
+             color = model, linetype = model), linewidth = 1) +
+  scale_color_manual(values = c(linear = "steelblue", poly2 = "seagreen4", poly3 = "firebrick"),
+                     labels = c("Linear","Quadratic polynomial", "Cubic polynomial")) +
+  scale_linetype_manual(values = c(linear = "dashed", poly2 = "dotdash", poly3 = "solid"),
+                        labels = c("Linear", "Quadratic polynomial", "Cubic polynomial")) +
+  labs(x = "Gestational Age", y = "log(GFAP)", color = "Model", linetype = "Model") +
+  theme_classic()
+
+
+
+fit_spline <- lmer(log(NFL) ~ ns(gest_age, knots = birth_knot) +
+                   age_v1 + education + ethnicity + (1|subject),
+                   data = data_biomarkers)
+summary(fit_spline)
+
+new_data$predicted <- predict(fit_spline, newdata = new_data, re.form = NA)
+
+ggplot() +
+  geom_point(data = data_biomarkers, aes(x = gest_age, y = log(NFL)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data, aes(x = gest_age, y = predicted), 
+            color = "firebrick", linewidth = 1) +
+  geom_vline(xintercept = birth_knot, linetype = "dashed", color = "gray40") +
+  annotate("text", x = birth_knot, y = Inf, label = "Birth", 
+           vjust = 2, hjust = -0.1, color = "gray40") +
+  labs(x = "Gestational Age", y = "log(NFL)") +
+  theme_classic()
+```
+
+# Analysis 3 timepoints
+
+non parametric anova, use tukey if there is a significant difference to see wht the direction is
+use predict() function, split the dataset between training and test, 60% training 40% testing / 66-33, 
+neural network model? LDA model? support vector matching? 
+
+# pTau217
+```{r}
+data_biomarkers_preg<-data_biomarkers%>%
+  filter(Visit !=4)%>%
+  mutate(scaled_gest_age = scale(gest_age))
+
+fit_linear_pTau217 <- lmer(log(pTau217) ~ scaled_gest_age + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers_preg)
+
+fit_poly2_pTau217 <- lmer(log(pTau217) ~ poly(gest_age, 2, raw= T) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers_preg)
+plot(fit_poly2_pTau217)
+
+fit_poly3_pTau217  <- lmer(log(pTau217) ~ poly(gest_age, 3, raw= T) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers_preg)
+
+summary(fit_linear_pTau217)
+summary(fit_poly2_pTau217)
+summary(fit_poly3_pTau217)
+anova(fit_linear_pTau217, fit_poly2_pTau217, fit_poly3_pTau217)
+
+# poly = 2 fits best
+
+# Create prediction grid
+new_data <- data.frame(
+  gest_age  = seq(min(data_biomarkers_preg$gest_age), max(data_biomarkers_preg$gest_age), length.out = 200),
+  age_v1    = mean(data_biomarkers_preg$age_v1, na.rm = TRUE),
+  education = names(sort(table(data_biomarkers_preg$education), decreasing = TRUE))[1],
+  ethnicity = names(sort(table(data_biomarkers_preg$ethnicity), decreasing = TRUE))[1]
+)
+
+
+new_data$linear_pTau217 <- predict(fit_linear_pTau217, newdata = new_data, re.form = NA)
+new_data$poly2_pTau217  <- predict(fit_poly2_pTau217,  newdata = new_data, re.form = NA)
+new_data$poly3_pTau217  <- predict(fit_poly3_pTau217,  newdata = new_data, re.form = NA)
+
+
+new_data_long_pTau217 <- new_data %>%
+  pivot_longer(cols = c(linear_pTau217, poly2_pTau217, poly3_pTau217), names_to = "model", values_to = "predicted")
+
+# Plot
+ggplot() +
+  geom_point(data = data_biomarkers_preg, aes(x = gest_age, y = log(pTau217)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data_long_pTau217, aes(x = gest_age, y = predicted, 
+             color = model, linetype = model), linewidth = 1) +
+  geom_line(data = data_biomarkers_preg, aes(x = gest_age, y = log(pTau217), group=subject), alpha=0.2)+
+  scale_color_manual(values = c(linear_pTau217 = "steelblue", poly2_pTau217 = "seagreen4", poly3_pTau217 = "firebrick"),
+                     labels = c("Linear","Quadratic polynomial", "Cubic polynomial")) +
+  scale_linetype_manual(values = c(linear_pTau217 = "dashed", poly2_pTau217 = "dotdash", poly3_pTau217 = "solid"),
+                        labels = c("Linear", "Quadratic polynomial", "Cubic polynomial")) +
+  labs(x = "Gestational Age", y = "log(pTau217)", color = "Model", linetype = "Model") +
+  theme_classic()
+
+
+#########
+# Now asking the question "does biomarker levels/trajectory during pregnancy predict later levels"
+# problem is: cannot use random slopes in model because too complex, creates singlular fit (maybe I have not tried the correct optimizer)
+# So now the options left are: doing the same but with the random intercepts, or doing the same with slope between v1-v3. both mean losing some information
+
+slopes <- tibble(slope_pTau217 = coef(fit_poly2_pTau217)$subject["poly(gest_age, 2, raw = T)2"])
+
+
+data_biomarkers_v4<-data_biomarkers[data_biomarkers$Visit==4,]
+
+time_v3_v4<-data_biomarkers%>%
+  dplyr::select(subject, Visit, gest_age)%>%
+  filter(Visit==3|Visit ==4)%>%
+  pivot_wider(names_from = Visit, values_from = gest_age)%>%
+  mutate(time_diff_v3_v4 = `4`-`3`)%>%
+  dplyr::select(-`3`, -`4`)
+
+test<-coef(fit_poly2_pTau217)
+
+# Join with V4 outcome
+analysis_data <- slopes %>%
+  left_join(data_biomarkers_v4, by = "subject")%>%
+  left_join(., time_v3_v4)
+
+m1 <- lm(log(pTau217) ~ slope_pTau217+ time_diff_v3_v4+age_v1 + education + ethnicity , data = analysis_data)
+#but need to include time between V3 and V4 + covariates
+
+summary(m1)
+
+plot(log(analysis_data$pTau217), analysis_data$slope_pTau217)
+```
+
+## SOlution 1: predict()
+fit non linear models with all 4 visits, use 60% for training and 40% for test.
+
+```{r}
+fit_pTau217 <- lmer(log(pTau217) ~ gest_age + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+
+fit_poly2_pTau217 <- lmer(log(pTau217) ~ poly(gest_age, 2, raw= T) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+
+fit_poly3_pTau217 <- lmer(log(pTau217) ~ poly(gest_age, 3, raw= T) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers)
+summary(fit_poly3_pTau217)
+
+anova(fit_pTau217, fit_poly2_pTau217, fit_poly3_pTau217)
+
+set.seed(123)  # for reproducibility
+
+n <- nrow(data_biomarkers)
+subjects <- unique(data_biomarkers$subject)
+train_subjects <- sample(subjects, size = 0.6 * length(subjects))
+
+data_biomarkers<-data_biomarkers%>%
+  mutate(log_ptau217 = log(pTau217))%>%
+  filter(!is.na(log_ptau217))
+train_data <- data_biomarkers[data_biomarkers$subject %in% train_subjects, ]
+test_data  <- data_biomarkers[!data_biomarkers$subject %in% train_subjects, ]
+
+model <- lmer(log_ptau217 ~ poly(gest_age, 3, raw= T) + age_v1 + education + ethnicity + (1|subject), data = train_data)
+predictions <- stats::predict(model, newdata = test_data, allow.new.levels = TRUE)
+
+actuals <- test_data$log_ptau217
+
+# RMSE
+rmse <- sqrt(mean((actuals - predictions)^2))
+
+# MAE
+mae <- mean(abs(actuals - predictions))
+
+# R-squared
+ss_res <- sum((actuals - predictions)^2)
+ss_tot <- sum((actuals - mean(actuals))^2)
+r2 <- 1 - ss_res / ss_tot
+
+cat("RMSE:", rmse, "\nMAE:", mae, "\nR²:", r2, "\n")
+
+summary(model)
+```
+
+## Solution 2: AUC
+
+```{r}
+pregnancy_summary <- data_biomarkers %>%
+  filter(Visit %in% c(1,2,3)) %>%
+  arrange(subject, gest_age) %>%
+  group_by(subject) %>%
+  summarise(
+    auc = sum(diff(gest_age) * (head(log_ptau217, -1) + tail(log_ptau217, -1)) / 2)
+  )
+
+visit4_data <- data_biomarkers[data_biomarkers$Visit == 4, c("subject", "log_ptau217")]
+
+modelling_data <- merge(pregnancy_summary, visit4_data, by = "subject")%>%
+  left_join(., data)
+
+model <- lm(log_ptau217 ~ auc + age_v1 + education + ethnicity, data = modelling_data)
+summary(model)
+```
+
+
+
+# NFL
+```{r}
+
+fit_linear_NFL <- lmer(log(NFL) ~ gest_age + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers_preg)
+fit_poly2_NFL <- lmer(log(NFL) ~ poly(gest_age, 2) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers_preg)
+fit_poly3_NFL  <- lmer(log(NFL) ~ poly(gest_age, 3) + age_v1 + education + ethnicity + (1|subject), data = data_biomarkers_preg)
+
+summary(fit_linear_NFL)
+summary(fit_poly2_NFL)
+summary(fit_poly3_NFL)
+anova(fit_linear_NFL, fit_poly2_NFL, fit_poly3_NFL)
+
+
+new_data$linear_NFL <- predict(fit_linear_NFL, newdata = new_data, re.form = NA)
+new_data$poly2_NFL  <- predict(fit_poly2_NFL,  newdata = new_data, re.form = NA)
+new_data$poly3_NFL  <- predict(fit_poly3_NFL,  newdata = new_data, re.form = NA)
+
+
+new_data_long <- new_data %>%
+  pivot_longer(cols = starts_with(c("linear", "poly2", "poly3")), names_to = "model", values_to = "predicted")
+
+# Plot
+ggplot() +
+  geom_point(data = data_biomarkers_preg, aes(x = gest_age, y = log(NFL)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data_long, aes(x = gest_age, y = predicted, 
+             color = model, linetype = model), linewidth = 1) +
+  scale_color_manual(values = c(linear_NFL = "steelblue", poly2_NFL = "seagreen4", poly3_NFL = "firebrick"),
+                     labels = c("Linear","Quadratic polynomial", "Cubic polynomial")) +
+  scale_linetype_manual(values = c(linear_NFL = "dashed", poly2_NFL = "dotdash", poly3_NFL = "solid"),
+                        labels = c("Linear", "Quadratic polynomial", "Cubic polynomial")) +
+  labs(x = "Gestational Age", y = "log(NFL)", color = "Model", linetype = "Model") +
+  theme_classic()
+
+fe <- fixef(fit_poly3_NFL)
+re <- lme4::ranef(fit_poly3_NFL)$subject
+
+blups_NFL <- re %>%
+  as_tibble(rownames = "subject") %>%
+  mutate(subject = as.integer(subject))%>%
+  rename(
+    re = `(Intercept)`
+  ) %>%
+  mutate(
+    slope_NFL = fe["(Intercept)"]+ re,
+  ) %>%
+  dplyr::select(subject, slope_NFL)
+
+# Join with V4 outcome
+analysis_data <- blups_NFL %>%
+  left_join(data_biomarkers_v4, by = "subject")%>%
+  left_join(., time_v3_v4)
+
+m2 <- lm(log(NFL) ~ slope_NFL+ time_diff_v3_v4+age_v1 + education + ethnicity, data = analysis_data)
+
+summary(m2)
+
+plot(log(analysis_data$NFL), analysis_data$slope_NFL)
+```
+
+# GFAP
+```{r}
+
+fit_linear_GFAP <- lmer(log(GFAP) ~ gest_age + age_v1 + education + ethnicity + (1 |subject), data = data_biomarkers_preg)
+fit_poly2_GFAP <- lmer(log(GFAP) ~ poly(gest_age, 2) + age_v1 + education + ethnicity + (1 |subject), data = data_biomarkers_preg)
+fit_poly3_GFAP  <- lmer(log(GFAP) ~ poly(gest_age, 3) + age_v1 + education + ethnicity + (1 |subject), data = data_biomarkers_preg)
+
+summary(fit_linear_GFAP)
+summary(fit_poly2_GFAP)
+summary(fit_poly3_GFAP)
+anova(fit_linear_GFAP, fit_poly2_GFAP, fit_poly3_GFAP)
+
+new_data$linear_GFAP <- predict(fit_linear_GFAP, newdata = new_data, re.form = NA)
+new_data$poly2_GFAP  <- predict(fit_poly2_GFAP,  newdata = new_data, re.form = NA)
+new_data$poly3_GFAP  <- predict(fit_poly3_GFAP,  newdata = new_data, re.form = NA)
+
+
+new_data_long <- new_data %>%
+  pivot_longer(cols = starts_with(c("linear", "poly2", "poly3")), names_to = "model", values_to = "predicted")
+
+# Plot
+ggplot() +
+  geom_point(data = data_biomarkers_preg, aes(x = gest_age, y = log(GFAP)), 
+             alpha = 0.3, size = 1) +
+  geom_line(data = new_data_long, aes(x = gest_age, y = predicted, 
+             color = model, linetype = model), linewidth = 1) +
+  scale_color_manual(values = c(linear_GFAP = "steelblue", poly2_GFAP = "seagreen4", poly3_GFAP = "firebrick"),
+                     labels = c("Linear","Quadratic polynomial", "Cubic polynomial")) +
+  scale_linetype_manual(values = c(linear_GFAP = "dashed", poly2_GFAP = "dotdash", poly3_GFAP = "solid"),
+                        labels = c("Linear", "Quadratic polynomial", "Cubic polynomial")) +
+  labs(x = "Gestational Age", y = "log(GFAP)", color = "Model", linetype = "Model") +
+  theme_classic()
+
+fe <- fixef(fit_poly2_GFAP)
+re <- lme4::ranef(fit_poly2_GFAP)$subject
+
+blups_GFAP <- re %>%
+  as_tibble(rownames = "subject") %>%
+  mutate(subject = as.integer(subject))%>%
+  rename(
+    re = `(Intercept)`
+  ) %>%
+  mutate(
+    slope_GFAP = fe["(Intercept)"]+ re,
+  ) %>%
+  dplyr::select(subject, slope_GFAP)
+
+# Join with V4 outcome
+analysis_data <- blups_GFAP %>%
+  left_join(data_biomarkers_v4, by = "subject")%>%
+  left_join(., time_v3_v4)
+
+m3 <- lm(log(GFAP) ~ slope_GFAP+ time_diff_v3_v4+age_v1 + education + ethnicity, data = analysis_data)
+
+summary(m3)
+
+plot(log(analysis_data$GFAP), analysis_data$slope_GFAP)
+```
+
+#Ferran's dataset
+
+```{r}
+data_clean<-read_excel("G:/My Drive/Data/BISC/long_df_20260709.xlsx")%>%
+  mutate(time_storage_ptau217 = case_when(Visit == "v1" ~ as.numeric(bl_edta.time.col.stor_m_12w),
+                                   Visit == "v2" ~ as.numeric(bl_edta.time.col.stor_m_32w),
+                                   Visit == "v3" ~ as.numeric(bl_time.col.store.edta_m_0y)),
+         time_storage_NFL_GFAP = case_when(Visit == "v1" ~ as.numeric(bl_plas.time.col.stor_m_12w),
+                                           Visit == "v2" ~ as.numeric(bl_plas.time.col.stor_m_32w),
+                                           Visit == "v3" ~ as.numeric(bl_time.col.store.plas_m_0y)))
+```
+
+
+##ptau217
+```{r}
+data_clean_preg<-data_clean%>%
+  filter(Visit !="v4")%>%
+  mutate(scaled_GA_weeks = scale(GA_weeks))
+
+fit_linear_pTau217_clean <- lmer(log(pTau217) ~ GA_weeks + age_12w_m + hosp_recruit_m_12w+ time_storage_ptau217+ (1|id_bisc), data = data_clean_preg)
+
+fit_poly2_pTau217_clean <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg)
+
+fit_poly3_pTau217_clean  <- lmer(log(pTau217) ~ poly(GA_weeks, 3, raw= T) + age_12w_m + hosp_recruit_m_12w +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg)
+
+summary(fit_linear_pTau217_clean)
+summary(fit_poly2_pTau217_clean)
+summary(fit_poly3_pTau217_clean)
+anova_ptau217<-anova(fit_linear_pTau217_clean, fit_poly2_pTau217_clean, fit_poly3_pTau217_clean)
+
+
+# poly = 2 fits best
+
+# Create prediction grid
+new_data <- data.frame(
+  GA_weeks  = seq(min(data_clean_preg$GA_weeks, na.rm = TRUE), 
+                   max(data_clean_preg$GA_weeks, na.rm = TRUE), 
+                   length.out = 200),
+  age_12w_m    = mean(data_clean_preg$age_12w_m, na.rm = TRUE),
+  hosp_recruit_m_12w = names(sort(table(data_clean_preg$hosp_recruit_m_12w), decreasing = TRUE))[1],
+  time_storage_ptau217  = seq(min(data_clean_preg$time_storage_ptau217, na.rm = TRUE), 
+                               max(data_clean_preg$time_storage_ptau217, na.rm = TRUE), 
+                               length.out = 200)
+)
+
+
+new_data$linear_pTau217 <- predict(fit_linear_pTau217_clean, newdata = new_data, re.form = NA)
+new_data$poly2_pTau217  <- predict(fit_poly2_pTau217_clean,  newdata = new_data, re.form = NA)
+new_data$poly3_pTau217  <- predict(fit_poly3_pTau217_clean,  newdata = new_data, re.form = NA)
+
+
+new_data_long_pTau217 <- new_data %>%
+  pivot_longer(cols = c(linear_pTau217, poly2_pTau217, poly3_pTau217), names_to = "model", values_to = "predicted")
+
+# Plot
+p1<-ggplot() +
+  geom_point(data = data_clean_preg, aes(x = GA_weeks, y = log(pTau217)), 
+             alpha = 0.2, size = 1) +
+  geom_line(data = new_data_long_pTau217[new_data_long_pTau217$model=="poly2_pTau217",], aes(x = GA_weeks, y = predicted, 
+             color = model, linetype = model), linewidth = 1.5) +
+  geom_line(data = data_clean_preg, aes(x = GA_weeks, y = log(pTau217), group=id_bisc), alpha=0.1)+
+  scale_color_manual(values = c(poly2_pTau217 = "deepskyblue1"),
+                     labels = c("Quadratic polynomial")) +
+  scale_linetype_manual(values = c(poly2_pTau217 = "solid"),
+                        labels = c("Quadratic polynomial")) +
+  labs(x = "Gestational Age (weeks)", y = "log(pTau217)", color = "Model", linetype = "Model") +
+  theme_classic()
+```
+
+##NFL
+```{r}
+fit_linear_NFL_clean <- lmer(log(NFL) ~ GA_weeks + age_12w_m + hosp_recruit_m_12w+ time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+
+fit_poly2_NFL_clean <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w  + time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+
+fit_poly3_NFL_clean  <- lmer(log(NFL) ~ poly(GA_weeks, 3, raw= T) + age_12w_m + hosp_recruit_m_12w + time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+
+summary(fit_linear_NFL_clean)
+summary(fit_poly2_NFL_clean)
+summary(fit_poly3_NFL_clean)
+anova_NFL<-anova(fit_linear_NFL_clean, fit_poly2_NFL_clean, fit_poly3_NFL_clean)
+
+# poly = 2 fits best
+
+# Create prediction grid
+new_data <- data.frame(
+  GA_weeks  = seq(min(data_clean_preg$GA_weeks, na.rm = TRUE), 
+                   max(data_clean_preg$GA_weeks, na.rm = TRUE), 
+                   length.out = 200),
+  age_12w_m    = mean(data_clean_preg$age_12w_m, na.rm = TRUE),
+  hosp_recruit_m_12w = names(sort(table(data_clean_preg$hosp_recruit_m_12w), decreasing = TRUE))[1],
+  time_storage_NFL_GFAP  = seq(min(data_clean_preg$time_storage_NFL_GFAP, na.rm = TRUE), 
+                               max(data_clean_preg$time_storage_NFL_GFAP, na.rm = TRUE), 
+                               length.out = 200)
+)
+
+
+new_data$linear_NFL <- predict(fit_linear_NFL_clean, newdata = new_data, re.form = NA)
+new_data$poly2_NFL  <- predict(fit_poly2_NFL_clean,  newdata = new_data, re.form = NA)
+new_data$poly3_NFL  <- predict(fit_poly3_NFL_clean,  newdata = new_data, re.form = NA)
+
+
+new_data_long_NFL <- new_data %>%
+  pivot_longer(cols = c(linear_NFL, poly2_NFL, poly3_NFL), names_to = "model", values_to = "predicted")
+
+# Plot
+p2<-ggplot() +
+  geom_point(data = data_clean_preg, aes(x = GA_weeks, y = log(NFL)), 
+             alpha = 0.2, size = 1) +
+  geom_line(data = new_data_long_NFL[new_data_long_NFL$model=="poly2_NFL",], aes(x = GA_weeks, y = predicted, 
+             color = model, linetype = model), linewidth = 1.5) +
+  geom_line(data = data_clean_preg, aes(x = GA_weeks, y = log(NFL), group=id_bisc), alpha=0.1)+
+  scale_color_manual(values = c(poly2_NFL = "deepskyblue1"),
+                     labels = c("Quadratic polynomial")) +
+  scale_linetype_manual(values = c(poly2_NFL = "solid"),
+                        labels = c("Quadratic polynomial")) +
+  labs(x = "Gestational Age (weeks)", y = "log(NFL)", color = "Model", linetype = "Model") +
+  theme_classic()
+```
+
+##GFAP
+```{r}
+
+fit_linear_GFAP_clean <- lmer(log(GFAP) ~ GA_weeks + age_12w_m + hosp_recruit_m_12w+time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+
+fit_poly2_GFAP_clean <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+
+fit_poly3_GFAP_clean  <- lmer(log(GFAP) ~ poly(GA_weeks, 3, raw= T) + age_12w_m + hosp_recruit_m_12w +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+
+summary(fit_linear_GFAP_clean)
+summary(fit_poly2_GFAP_clean)
+summary(fit_poly3_GFAP_clean)
+anova_GFAP<-anova(fit_linear_GFAP_clean, fit_poly2_GFAP_clean, fit_poly3_GFAP_clean)
+
+# poly = 2 fits best
+
+# Create prediction grid
+new_data <- data.frame(
+  GA_weeks  = seq(min(data_clean_preg$GA_weeks, na.rm = TRUE), 
+                   max(data_clean_preg$GA_weeks, na.rm = TRUE), 
+                   length.out = 200),
+  age_12w_m    = mean(data_clean_preg$age_12w_m, na.rm = TRUE),
+  hosp_recruit_m_12w = names(sort(table(data_clean_preg$hosp_recruit_m_12w), decreasing = TRUE))[1],
+  time_storage_NFL_GFAP  = seq(min(data_clean_preg$time_storage_NFL_GFAP, na.rm = TRUE), 
+                               max(data_clean_preg$time_storage_NFL_GFAP, na.rm = TRUE), 
+                               length.out = 200)
+)
+
+
+new_data$linear_GFAP <- predict(fit_linear_GFAP_clean, newdata = new_data, re.form = NA)
+new_data$poly2_GFAP  <- predict(fit_poly2_GFAP_clean,  newdata = new_data, re.form = NA)
+new_data$poly3_GFAP  <- predict(fit_poly3_GFAP_clean,  newdata = new_data, re.form = NA)
+
+
+new_data_long_GFAP <- new_data %>%
+  pivot_longer(cols = c(linear_GFAP, poly2_GFAP, poly3_GFAP), names_to = "model", values_to = "predicted")
+
+# Plot
+p3<-ggplot() +
+  geom_point(data = data_clean_preg, aes(x = GA_weeks, y = log(GFAP)), 
+             alpha = 0.2, size = 1) +
+  geom_line(data = new_data_long_GFAP[new_data_long_GFAP$model=="poly2_GFAP",], aes(x = GA_weeks, y = predicted, 
+             color = model, linetype = model), linewidth = 1.5) +
+  geom_line(data = data_clean_preg, aes(x = GA_weeks, y = log(GFAP), group=id_bisc), alpha=0.1)+
+  scale_color_manual(values = c(poly2_GFAP = "deepskyblue1"),
+                     labels = c("Quadratic polynomial")) +
+  scale_linetype_manual(values = c(poly2_GFAP = "solid"),
+                        labels = c("Quadratic polynomial")) +
+  labs(x = "Gestational Age (weeks)", y = "log(GFAP)", color = "Model", linetype = "Model") +
+  theme_classic()
+```
+
+
+## Figure
+```{r, fig.height = 8, fig.width = 8.5}
+figure1<-p1/p2/p3+ plot_layout(axis_titles ="collect", guides = 'collect')
+ggsave("figure1.png", width = 8, height = 8.5)
+```
+
+
+## Tables
+
+```{r}
+
+# tidy() extracts F, df, p, etc. from an aov object
+tbl1 <- tidy(anova_ptau217) %>% mutate(model = "pTau217")
+tbl2 <- tidy(anova_NFL) %>% mutate(model = "NfL")
+tbl3 <- tidy(anova_GFAP) %>% mutate(model = "GFAP")
+
+combined_data <- bind_rows(tbl1, tbl2, tbl3)%>%
+  dplyr::select(model, term, df, AIC, BIC, p.value) %>%
+  rename(p = p.value)%>%
+  mutate(term=case_when(term == "fit_linear_pTau217_clean" ~ "Linear",
+                        term == "fit_linear_NFL_clean" ~ "Linear",
+                        term == "fit_linear_GFAP_clean" ~ "Linear",
+                        term == "fit_poly2_pTau217_clean" ~ "Quadratic",
+                        term == "fit_poly2_NFL_clean" ~ "Quadratic",
+                        term == "fit_poly2_GFAP_clean" ~ "Quadratic",
+                        term == "fit_poly3_pTau217_clean" ~ "Cubic",
+                        term == "fit_poly3_NFL_clean" ~ "Cubic",
+                        term == "fit_poly3_GFAP_clean" ~ "Cubic",
+                   .default = as.character(term)))
+
+table_anova<-gt(combined_data)%>%
+  fmt_number(columns=c(p, AIC, BIC), decimals = 3)
+
+gtsave(table_anova, file = "anova_table.docx")
+```
+
+
+```{r}
+table_ptau217<-tbl_regression(fit_poly2_pTau217_clean,
+               tidy_fun = broom.mixed::tidy,
+               label=list(GA_weeks= "Gestation time (weeks)",
+                          age_12w_m = "Age at first visit",
+                          hosp_recruit_m_12w = "Hospital of recruitment",
+                          time_storage_ptau217 = "Time to storage"),
+               estimate_fun = ~ style_number(.x, digits = 4),
+               include = c(GA_weeks, age_12w_m, hosp_recruit_m_12w, time_storage_ptau217))%>%
+  modify_table_body(
+    ~ .x %>%
+      dplyr::mutate(
+        label = dplyr::case_when(
+          label == "poly(GA_weeks, 2, raw = T)1"  ~ "Linear term",
+          label == "poly(GA_weeks, 2, raw = T)2"  ~ "Quadratic term",
+          TRUE ~ label
+        )
+      )
+  ) %>%
+  modify_table_body(
+  ~ .x %>%
+    dplyr::group_by(variable) %>%
+    dplyr::mutate(
+      label = dplyr::if_else(
+        variable == "hosp_recruit_m_12w" & row_type == "level",
+        as.character(cumsum(variable == "hosp_recruit_m_12w" & row_type == "level")),
+        label
+      )
+    ) %>%
+    dplyr::ungroup()
+)%>%
+  modify_column_unhide(columns = std.error) %>%
+  modify_header(estimate ~ "**Estimate**", label ~ "**Variables, N = {N}**")
+
+table_NFL<-tbl_regression(fit_poly2_NFL_clean,
+               tidy_fun = broom.mixed::tidy,
+               label=list(GA_weeks= "Gestation time (weeks)",
+                          age_12w_m = "Age at first visit",
+                          hosp_recruit_m_12w = "Hospital of recruitment",
+                          time_storage_NFL_GFAP = "Time to storage"),
+               estimate_fun = ~ style_number(.x, digits = 4),
+               include = c(GA_weeks, age_12w_m, hosp_recruit_m_12w, time_storage_NFL_GFAP))%>%
+  modify_table_body(
+    ~ .x %>%
+      dplyr::mutate(
+        label = dplyr::case_when(
+          label == "poly(GA_weeks, 2, raw = T)1"  ~ "Linear term",
+          label == "poly(GA_weeks, 2, raw = T)2"  ~ "Quadratic term",
+          TRUE ~ label
+        )
+      )
+  ) %>%
+  modify_table_body(
+  ~ .x %>%
+    dplyr::group_by(variable) %>%
+    dplyr::mutate(
+      label = dplyr::if_else(
+        variable == "hosp_recruit_m_12w" & row_type == "level",
+        as.character(cumsum(variable == "hosp_recruit_m_12w" & row_type == "level")),
+        label
+      )
+    ) %>%
+    dplyr::ungroup()
+)%>%
+  modify_column_unhide(columns = std.error) %>%
+  modify_header(estimate ~ "**Estimate**", label ~ "**Variables, N = {N}**")
+
+table_GFAP<-tbl_regression(fit_poly2_GFAP_clean,
+               tidy_fun = broom.mixed::tidy,
+               label=list(GA_weeks= "Gestation time (weeks)",
+                          age_12w_m = "Age at first visit",
+                          hosp_recruit_m_12w = "Hospital of recruitment",
+                          time_storage_NFL_GFAP = "Time to storage"),
+               estimate_fun = ~ style_number(.x, digits = 4),
+               include = c(GA_weeks, age_12w_m, hosp_recruit_m_12w, time_storage_NFL_GFAP))%>%
+  modify_table_body(
+    ~ .x %>%
+      dplyr::mutate(
+        label = dplyr::case_when(
+          label == "poly(GA_weeks, 2, raw = T)1"  ~ "Linear term",
+          label == "poly(GA_weeks, 2, raw = T)2"  ~ "Quadratic term",
+          TRUE ~ label
+        )
+      )
+  ) %>%
+  modify_table_body(
+  ~ .x %>%
+    dplyr::group_by(variable) %>%
+    dplyr::mutate(
+      label = dplyr::if_else(
+        variable == "hosp_recruit_m_12w" & row_type == "level",
+        as.character(cumsum(variable == "hosp_recruit_m_12w" & row_type == "level")),
+        label
+      )
+    ) %>%
+    dplyr::ungroup()
+)%>%
+  modify_column_unhide(columns = std.error) %>%
+  modify_header(estimate ~ "**Estimate**", label ~ "**Variables, N = {N}**")
+
+
+table_ptau217 <- table_ptau217 %>%
+  modify_table_body(
+    ~ .x %>%
+      dplyr::mutate(
+        variable = dplyr::if_else(variable == "time_storage_ptau217", "time_to_storage", variable),
+        label = dplyr::if_else(variable == "time_to_storage", "Time to storage", label)
+      )
+  )
+
+table_NFL <- table_NFL %>%
+  modify_table_body(
+    ~ .x %>%
+      dplyr::mutate(
+        variable = dplyr::if_else(variable == "time_storage_NFL_GFAP", "time_to_storage", variable),
+        label = dplyr::if_else(variable == "time_to_storage", "Time to storage", label)
+      )
+  )
+
+table_GFAP <- table_GFAP %>%
+  modify_table_body(
+    ~ .x %>%
+      dplyr::mutate(
+        variable = dplyr::if_else(variable == "time_storage_NFL_GFAP", "time_to_storage", variable),
+        label = dplyr::if_else(variable == "time_to_storage", "Time to storage", label)
+      )
+  )
+
+table_merged<-tbl_merge(
+  tbls = list(table_ptau217, table_NFL, table_GFAP),
+  tab_spanner = c("**pTau217**", "**NfL**", "**GFAP**")
+)
+
+table_merged%>%
+  as_gt()%>%
+  gtsave(., file = "regression_table.docx")
 ```
 
