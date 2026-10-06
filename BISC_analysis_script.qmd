@@ -1,15 +1,16 @@
 ---
 title: "BISC_analysis"
 author: "Clazz"
-format: html
+format: docx
 editor: source
+bibliography: references.bib
 ---
 
 ```{r, include = F}
 
 if (!require("pacman")) install.packages("pacman")
 
-pacman::p_load(tidyverse, VIM, ggpubr, ggeffects, car, sjPlot,caret, ggrain, emmeans, skimr, lavaan, patchwork, lme4, lmerTest, gtsummary, gt, huxtable, readxl, broom.mixed, pwrss, mediation)
+pacman::p_load(tidyverse, VIM, ggpubr, ggeffects, car, sjPlot,caret, ggrain, emmeans, skimr, lavaan, patchwork, lme4, lmerTest, gtsummary, gt, huxtable, readxl, broom.mixed, pwrss, mediation, RColorBrewer, ggpubr)
 
 source("C:/Users/U253662/Documents/git/functions/jt_plot_aesthetics.R")
 
@@ -24,7 +25,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-
 ```{r, include=F, warning=F}
 data_clean<-read_excel("G:/My Drive/Data/BISC/long_df_20260709.xlsx")%>%
   mutate(time_storage_ptau217 = case_when(Visit == "v1" ~ as.numeric(bl_edta.time.col.stor_m_12w),
@@ -32,20 +32,40 @@ data_clean<-read_excel("G:/My Drive/Data/BISC/long_df_20260709.xlsx")%>%
                                    Visit == "v3" ~ as.numeric(bl_time.col.store.edta_m_0y)),
          time_storage_NFL_GFAP = case_when(Visit == "v1" ~ as.numeric(bl_plas.time.col.stor_m_12w),
                                            Visit == "v2" ~ as.numeric(bl_plas.time.col.stor_m_32w),
-                                           Visit == "v3" ~ as.numeric(bl_time.col.store.plas_m_0y)))
+                                           Visit == "v3" ~ as.numeric(bl_time.col.store.plas_m_0y)))%>%
+  mutate(scaled_GA_weeks = scale(GA_weeks),
+         hosp_recruit_m_12w_code = factor(as.integer(factor(hosp_recruit_m_12w))),
+         bl_gest.age.del_m_0y = as.numeric(bl_gest.age.del_m_0y),
+         bl_gest.age.extr_c_0y = as.numeric(bl_gest.age.extr_c_0y),
+         bl_gest.age.del_m_0y = ifelse(is.na(bl_gest.age.del_m_0y), bl_gest.age.extr_c_0y, bl_gest.age.del_m_0y),
+         preg_pathology = ifelse(C_DG=="Yes"| C_hel== "Yes"| C_hip== "Yes"| C_pree== "Yes" | C_peeg == "Yes", 1, 0),
+         advanced_mat_age = factor(ifelse(age_12w_m>34, 1, 0)),
+         Visit=factor(Visit),
+         gestage_0y_c_weeks = gestage_0y_c_days/7,
+         bl_time.col.del.2cat_m_0y = factor(bl_time.col.del.2cat_m_0y))%>%
+  dplyr::select(id_bisc, age_12w_m, advanced_mat_age, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, parity_m_2cat, Visit, GA_weeks, scaled_GA_weeks, hosp_recruit_m_12w, hosp_recruit_m_12w_code, bl_gest.age.del_m_0y, bl_gest.age.extr_c_0y, bl_gest.age.del_m_0y, pTau217, GFAP, NFL, time_storage_ptau217, time_storage_NFL_GFAP, C_DG, C_hel, C_hip, C_pree, C_peeg, preg_pathology, gestage_0y_c_weeks, bl_time.col.del.2cat_m_0y)
 ```
 
 # Introduction
 
-Pregnancy is a process that deeply impacts all systems of the human body. Growing body of evidence points towards a broad neuroanatomical shift. 
-- pregnancy is associated with substantial chnages in GMV Hoekzema 2017
-- The chnages follow a U-shaped trajectory where GMV loss peaks right before parturition, and raises again during the post-partum period.(Paternina-die 2024)
-- Comes back to potentially normal levels but differences still persist at least up to 6 years post (martinez-garcia 2021)
-- 
+Pregnancy is a highly demanding phyysiological process that deeply impacts all systems of the human body @oleary1991; @huang2021; @hadden2009. Important neuroanatomical changes are driven by surges in sex-steroid hormones, particularly estrogen and progesterone. These all-encompassing changes impact both the neocortex and subcortical areas @servin-barthet2025, where significant grey matter volume shifts show a U-shaped evolution which peaks around the 3rd trimester @hoekzema2016; @paternina-die2024. Although the trajectory of these changes show levels that come back to pre-pregnancy levels during porst-partum, a "pregnancy signature" is identifiable for at least 7 year after last parturition. It is still not fully understood what kind of biological process underlie the changes in GMV observed during pregnancy, and if neurodegeneraive processs drive some of these changes in normotensive pregnancies.
+
+Cerebral biomarkers may be useful in identifying neurodegenerative processes. Neurofilament light chain (NfL) is an axonal protein useful to detect axon loss \[ref\]. Studies looking at longitudinal levels of NfL during pregnancy have mostly done so in the context of hypertensive pregnancy disorders to characterise the levels of this biomarker in a clinical context, and have therefore used at-risk populations. The controls subjects of these studies offer some data on healthy subjects showing changes in NFL throughout the gestation, which sees a non-linear evolution peaking at 3rd term @cuello2019; @bergman2018.
+
+p-Tau217 is a disease specific . One study found that hypertensive disorders of pregnancy were associated with higher levels of p-Tau217 in cognitively healthy middle-aged adults \[https://doi.org/10.1016/j.tjpad.2025.100316\]. Total tau lowers throuhgout pregnancy in normotensive cases (36 cases) @bergman2018.
+
+Glial fibrillary acidic protein (GFAP) is a filament protein used to identify astrocyte reactivity, usually in response to neuroinflammation or neurodegeneration [cite]. 
 
 
-The changes are associated with hormonal trajectories, which makes sence given the role of hormones in ....
-But it is still not fully known what biological mechanism drives the brain changes observed. Could be water shifts, or actual synaptic changes?
+
+
+
+
+NFL: - higher levels at 3rd term in women with pre eclampsia - NfL levels rise throuhgout pregnancy in women at risk of pre-eclampsia. Levels are higher across pregnancy in women who do end up developing pre-eclampsia, and age is also related to higher levels throuhgout 10.1161/HYPERTENSIONAHA.117.10314 - in the case of adverse events linked to preeclampsia like pulmonary embolisms and neurological complications, NfL levels are associated with cognitive impairments https://doi.org/10.1016/j.preghy.2022.12.001 - in healthy pregnancies, NFL levels are higher in 3rd term compared to 1st term and puerperium 10.1111/ene.13965 - healthy women show a small increase in NFL levels towards term https://doi.org/10.1371/journal.pone.0196025
+
+we still don't know: if the changes persist at post-partum if the changes happen in first pregnancy an subsequent if the birth itself triggers some of the changes no data on gfap no data on ptau217
+
+novel: - post-partunm data - pre and post birth data - very healthy cohort of women - good sample size and available number of visits
 
 # Methods
 
@@ -55,35 +75,22 @@ But it is still not fully known what biological mechanism drives the brain chang
 
 ## Statistical analysis
 
-
 # Results
 
 ## Cohort description
+
 ```{r, include=F, warning=F}
-data_clean_preg<-data_clean%>%
-  filter(Visit !="v4")%>%
-  mutate(scaled_GA_weeks = scale(GA_weeks),
-         hosp_recruit_m_12w_code = factor(as.integer(factor(hosp_recruit_m_12w))),
-         bl_gest.age.del_m_0y = as.numeric(bl_gest.age.del_m_0y),
-         bl_gest.age.extr_c_0y = as.numeric(bl_gest.age.extr_c_0y),
-         bl_gest.age.del_m_0y = ifelse(is.na(bl_gest.age.del_m_0y), bl_gest.age.extr_c_0y, bl_gest.age.del_m_0y),
-         preg_pathology = ifelse(C_DG=="Yes"| C_hel== "Yes"| C_hip== "Yes"| C_pree== "Yes" | C_peeg == "Yes", 1, 0))%>%
-  dplyr::select(id_bisc, age_12w_m, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, parity_m_2cat, Visit, GA_weeks, scaled_GA_weeks, hosp_recruit_m_12w, hosp_recruit_m_12w_code, bl_gest.age.del_m_0y, bl_gest.age.extr_c_0y, bl_gest.age.del_m_0y, pTau217, GFAP, NFL, time_storage_ptau217, time_storage_NFL_GFAP, C_DG, C_hel, C_hip, C_pree, C_peeg, preg_pathology)
 
-v3<-data_clean_preg[data_clean_preg$Visit=="v3",]
-test<-data_clean_preg%>%
-  dplyr::select(id_bisc, GA_weeks, bl_gest.age.del_m_0y)
-
-data_table<-data_clean_preg%>%
+data_table<-data_clean%>%
   group_by(id_bisc)%>%
   mutate(number_visits = n())%>%
   slice_head()%>%
   ungroup()%>%
-  dplyr::select(age_12w_m, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, hosp_recruit_m_12w_code, parity_m_2cat, bl_gest.age.del_m_0y, number_visits, preg_pathology)%>%
+  dplyr::select(age_12w_m, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, hosp_recruit_m_12w_code, parity_m_2cat, gestage_0y_c_weeks, number_visits, preg_pathology, advanced_mat_age, , bl_time.col.del.2cat_m_0y)%>%
   mutate(ethnicity_m_3cat = case_when(ethnicity_m_3cat == "eur" ~ "European",
                                       ethnicity_m_3cat == "lat_amr" ~ "Latin american",
                                       ethnicity_m_3cat == "other" ~ "Other"),
-         bl_gest.age.del_m_0y= as.numeric(bl_gest.age.del_m_0y))
+         premie = ifelse(gestage_0y_c_weeks<37, 1, 0))
 
 desc_table<-tbl_summary(data_table,
                         missing="no",
@@ -92,11 +99,16 @@ desc_table<-tbl_summary(data_table,
                                     educ_level_m_2cat = "Education",
                                     hosp_recruit_m_12w_code = "Hospital of recruitment",
                                     parity_m_2cat = "Parity",
-                                    bl_gest.age.del_m_0y = "Gestational age at birth (weeks)",
+                                    gestage_0y_c_weeks = "Gestational age at birth (weeks)",
                                     ethnicity_m_3cat = "Ethnicity",
                                     preg_pathology = "Pregnancy pathology (presence of)",
-                                    number_visits = "Number of available visits"),
-                        value = list(preg_pathology= "1"))%>%
+                                    advanced_mat_age = "Advanced maternal age",
+                                    number_visits = "Number of available visits",
+                                    bl_time.col.del.2cat_m_0y = "Delivery",
+                                    premie = "Premature birth"),
+                        value = list(preg_pathology= "1",
+                                     advanced_mat_age = "1",
+                                     advanced_mat_age = "1"))%>%
   add_n()%>%
   modify_header(label = "**Variables**") %>% # update the column header
   bold_labels()%>%
@@ -106,14 +118,82 @@ desc_table<-tbl_summary(data_table,
 
 n_subject<-nrow(data_table)
 
+
+
 ```
 
-A total of `r n_subject` participants were included in our analyses. 
+A total of `r n_subject` participants were included in our analyses. The average gestational age at delivery was 40.14 weeks, with only 3 participants having had a premature birth. 6 participants had pregnancy complications: 2 had gestational diabetes, and 4 had hypertensive disorders of pregnancy. 50% of our sample have all 4 visits, 39% have 3 visits and 11% have 2.
 
+## Biomarker levels singificantly change around delivery
+
+```{r, include=F, warning=F}
+fit_base_ptau217<-lmer(log(pTau217) ~ Visit + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
+summary(fit_base_ptau217)
+
+fit_base_NFL<-lmer(log(NFL) ~ Visit + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
+summary(fit_base_NFL)
+
+fit_base_GFAP<-lmer(log(GFAP) ~ Visit + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
+summary(fit_base_GFAP)
+
+p_nfl_v4<-p.adjust(c(tidy(fit_base_GFAP)$p.value[4], tidy(fit_base_NFL)$p.value[4], tidy(fit_base_ptau217)$p.value[4]), method = "fdr")[2]
+
+p_ptau_v4<-p.adjust(c(tidy(fit_base_GFAP)$p.value[4], tidy(fit_base_NFL)$p.value[4], tidy(fit_base_ptau217)$p.value[4]), method = "fdr")[3]
+```
+
+Biomarker levels showed a significant change at visit 3, which coincides with the time of delivery. Serum NfL (β=`r tidy(fit_base_NFL)$estimate[3]`, p=`r tidy(fit_base_NFL)$p.value[3]`, q\<.001) and GFAP (β=`r tidy(fit_base_GFAP)$estimate[3]`, p=`r tidy(fit_base_GFAP)$p.value[3]`, q\<.001) showed higher values, whilst plasma pTau-217 showed lower values (β=`r tidy(fit_base_ptau217)$estimate[3]`, p=`r tidy(fit_base_ptau217)$p.value[3]`, q\<.001). Higher values at visit 4 were observed for NfL (β=`r tidy(fit_base_NFL)$estimate[4]`, p=`r tidy(fit_base_NFL)$p.value[4]`, q= `r p_nfl_v4`) and pTau-217 (β=`r tidy(fit_base_ptau217)$estimate[4]`, p=`r tidy(fit_base_ptau217)$p.value[4]`, q= `r p_ptau_v4`), but this did not remain significant after multiple comparison.
+
+```{r, include=F, warning=F}
+#Sensitivity analysis: delivery time
+
+fit_delivery_ptau217<-lmer(log(pTau217) ~ Visit+bl_time.col.del.2cat_m_0y + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
+summary(fit_delivery_ptau217)
+
+fit_delivery_NFL<-lmer(log(NFL) ~ Visit+bl_time.col.del.2cat_m_0y + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
+summary(fit_delivery_NFL)
+
+fit_delivery_GFAP<-lmer(log(GFAP) ~ Visit+bl_time.col.del.2cat_m_0y + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
+summary(fit_delivery_GFAP)
+
+```
+
+Blood samples collected after delivery at visit 3 showed slightly higher NfL values (β=`r tidy(fit_delivery_NFL)$estimate[5]`, p=`r tidy(fit_delivery_NFL)$p.value[5]`), while the main effect remained stable. No association was found between timing of sample collection at visit 3 for GFAP or pTau-217.
+
+```{r, include=F, warning=F}
+fit_parity_ptau217<-lmer(log(pTau217) ~ Visit * parity_m_2cat+hosp_recruit_m_12w_code+age_12w_m + (1|id_bisc), data = data_clean)
+summary(fit_parity_ptau217)
+
+fit_parity_NFL<-lmer(log(NFL) ~ Visit * parity_m_2cat+hosp_recruit_m_12w_code+age_12w_m + (1|id_bisc), data = data_clean)
+summary(fit_parity_NFL)
+
+fit_parity_GFAP<-lmer(log(GFAP) ~ Visit * parity_m_2cat+hosp_recruit_m_12w_code+age_12w_m + (1|id_bisc), data = data_clean)
+summary(fit_parity_GFAP)
+
+nfl_parity<-p.adjust(c(tidy(fit_parity_ptau217)$p.value[11], tidy(fit_parity_NFL)$p.value[11], tidy(fit_parity_GFAP)$p.value[11]), method = "fdr")[2]
+
+gfap_parity<-p.adjust(c(tidy(fit_parity_ptau217)$p.value[11], tidy(fit_parity_NFL)$p.value[11], tidy(fit_parity_GFAP)$p.value[11]), method = "fdr")[3]
+
+
+test1<-lmer(log(pTau217) ~ Visit * bmi_m_12w+age_12w_m+hosp_recruit_m_12w_code + (1|id_bisc), data = data_clean)
+summary(test1)
+
+test2<-lmer(log(NFL) ~ Visit * bmi_m_12w+age_12w_m+hosp_recruit_m_12w_code + (1|id_bisc), data = data_clean)
+summary(test2)
+
+test3<-lmer(log(GFAP) ~ Visit * bmi_m_12w+age_12w_m+hosp_recruit_m_12w_code + (1|id_bisc), data = data_clean)
+summary(test3)
+
+```
+
+Being nulliparous was significantly associated with lower NfL (β=`r tidy(fit_parity_NFL)$estimate[11]`, p=`r tidy(fit_parity_NFL)$p.value[11]`, q= `r nfl_parity`) and GFAP (β=`r tidy(fit_parity_GFAP)$estimate[11]`, p=`r tidy(fit_parity_GFAP)$p.value[11]`, q= `r gfap_parity`) values at visit 4.
 
 ## Biomarkers change non-linearly during pregnancy
+
 ```{r, include=F, warning=F}
 # ptau217
+
+data_clean_preg<-data_clean%>%
+  filter(Visit !="v4")
 
 fit_linear_pTau217_clean <- lmer(log(pTau217) ~ GA_weeks + age_12w_m + hosp_recruit_m_12w_code+ time_storage_ptau217+ (1|id_bisc), data = data_clean_preg)
 
@@ -157,21 +237,62 @@ anova_GFAP<-anova(fit_linear_GFAP_clean, fit_poly2_GFAP_clean, fit_poly3_GFAP_cl
 
 ```
 
-Gestational age was significantly associated with each biomarker trajectory, and quadratic models resulted in the best fit for ptau217 (p=`r anova_ptau217$"Pr(>Chisq)"[2]`), NfL (p=`r anova_NFL$"Pr(>Chisq)"[2]`), and GFAP (p=`r anova_GFAP$"Pr(>Chisq)"[2]`) (Table X). Serum GFAP (linear β=`r tidy(fit_poly2_GFAP_clean)$estimate[2]`, p=`r tidy(fit_poly2_GFAP_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_GFAP_clean)$estimate[3]`, p=`r tidy(fit_poly2_GFAP_clean)$p.value[3]`) and NfL (linear β=`r tidy(fit_poly2_NFL_clean)$estimate[2]`, p=`r tidy(fit_poly2_NFL_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_NFL_clean)$estimate[3]`, p=`r tidy(fit_poly2_NFL_clean)$p.value[3]`) followed U-shaped trajectories, plateauing in the first 2 visits then increasing at term. Plasma p-tau217 also remained stable through the first 2 visits before declining toward term (linear β=`r tidy(fit_poly2_pTau217_clean)$estimate[2]`, p=`r tidy(fit_poly2_pTau217_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_pTau217_clean)$estimate[3]`, p=`r tidy(fit_poly2_pTau217_clean)$p.value[3]`) (Figure X, Table X). 
+Gestational age was significantly associated with each biomarker trajectory, and quadratic models resulted in the best fit for ptau217 (p=`r anova_ptau217$"Pr(>Chisq)"[2]`), NfL (p=`r anova_NFL$"Pr(>Chisq)"[2]`), and GFAP (p=`r anova_GFAP$"Pr(>Chisq)"[2]`) (Table X). Serum GFAP (linear β=`r tidy(fit_poly2_GFAP_clean)$estimate[2]`, p=`r tidy(fit_poly2_GFAP_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_GFAP_clean)$estimate[3]`, p=`r tidy(fit_poly2_GFAP_clean)$p.value[3]`) and NfL (linear β=`r tidy(fit_poly2_NFL_clean)$estimate[2]`, p=`r tidy(fit_poly2_NFL_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_NFL_clean)$estimate[3]`, p=`r tidy(fit_poly2_NFL_clean)$p.value[3]`) followed U-shaped trajectories, plateauing in the first 2 visits then increasing at term. Plasma p-tau217 also remained stable through the first 2 visits before declining toward term (linear β=`r tidy(fit_poly2_pTau217_clean)$estimate[2]`, p=`r tidy(fit_poly2_pTau217_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_pTau217_clean)$estimate[3]`, p=`r tidy(fit_poly2_pTau217_clean)$p.value[3]`) (Figure X, Table X).
 
 ```{r, include=F, warning=F}
 fit_poly2_pTau217_no_pathology <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg[data_clean_preg$preg_pathology==0,])
 summary(fit_poly2_pTau217_no_pathology)
 
-fit_poly2_NFL_no_pathology <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg[data_clean_preg$preg_pathology==0,])
+fit_poly2_NFL_no_pathology <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg[data_clean_preg$preg_pathology==0,])
 summary(fit_poly2_NFL_no_pathology)
 
-fit_poly2_GFAP_no_pathology <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg[data_clean_preg$preg_pathology==0,])
+fit_poly2_GFAP_no_pathology <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg[data_clean_preg$preg_pathology==0,])
 summary(fit_poly2_GFAP_no_pathology)
 
 ```
 
-Sensitivity analyses only including participants with confirmed absence of pregnancy pathology (n=117) yielded similar results for serum GFAP (linear β=`r tidy(fit_poly2_GFAP_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_GFAP_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_GFAP_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_GFAP_no_pathology)$p.value[3]`) and NfL (linear β=`r tidy(fit_poly2_NFL_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_NFL_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_NFL_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_NFL_no_pathology)$p.value[3]`), and plasma p-tau217 (linear β=`r tidy(fit_poly2_pTau217_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_pTau217_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_pTau217_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_pTau217_no_pathology)$p.value[3]`)
+Sensitivity analyses only including participants with confirmed absence of pregnancy pathology (n=117) yielded similar results for serum GFAP (linear β=`r tidy(fit_poly2_GFAP_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_GFAP_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_GFAP_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_GFAP_no_pathology)$p.value[3]`) and NfL (linear β=`r tidy(fit_poly2_NFL_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_NFL_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_NFL_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_NFL_no_pathology)$p.value[3]`), and plasma p-tau217 (linear β=`r tidy(fit_poly2_pTau217_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_pTau217_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_pTau217_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_pTau217_no_pathology)$p.value[3]`).
+
+```{r, include=F, warning=F}
+#age interaction
+
+fit_poly2_pTau217_age <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T) * advanced_mat_age+ age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_pTau217_age)
+
+fit_poly2_NFL_age <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T) * advanced_mat_age+age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_NFL_age)
+
+fit_poly2_GFAP_age <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T) * advanced_mat_age+age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_GFAP_age)
+
+# parity interaction
+
+fit_poly2_pTau217_parity <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T)*parity_m_2cat + age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+  (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_pTau217_parity)
+
+fit_poly2_NFL_parity <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T)*parity_m_2cat + age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_NFL_parity)
+
+fit_poly2_GFAP_parity <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T)*parity_m_2cat + age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+  (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_GFAP_parity)
+
+#hospital recruitment interaction
+
+fit_poly2_pTau217_ses <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T)*hosp_recruit_m_12w_code + age_12w_m   +time_storage_ptau217+  (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_pTau217_ses)
+
+fit_poly2_NFL_ses <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T)*hosp_recruit_m_12w_code + age_12w_m   +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_NFL_ses)
+
+fit_poly2_GFAP_ses <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T)*hosp_recruit_m_12w_code + age_12w_m   +time_storage_NFL_GFAP+  (1|id_bisc), data = data_clean_preg)
+summary(fit_poly2_GFAP_ses)
+```
+
+Age, previous parity or hospital of recruitment showed no significant interaction with the trajectories of the biomarkers.
+
+# Discussion
+
+GFAP present in foetus and umbilical chord [https://doi.org/10.1038/s41390-019-0439-z]
 
 # Tables
 
@@ -182,6 +303,7 @@ desc_table
 ```
 
 ## ANOVA table
+
 ```{r, echo=F, warning=F}
 
 # tidy() extracts F, df, p, etc. from an aov object
@@ -211,12 +333,217 @@ table_anova
 #gtsave(table_anova, file = "anova_table.docx")
 ```
 
-
-
-
-
-
 # Figures
+
+## Figure X
+
+```{r, warning=F, width = 8, height = 14, echo=F}
+
+preg_labs<-c("12 weeks", "34 weeks", "Delivery", "4y post-partum")
+
+# ptau217
+emm_visit_ptau217 <- emmeans(fit_base_ptau217, ~ Visit)
+pw_ptau217 <- pairs(emm_visit_ptau217, adjust = "tukey")
+pw_df_ptau217 <- as.data.frame(pw_ptau217)%>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".* - ", "", contrast),
+    p.label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      p.value < 0.1  ~ "+",
+      TRUE ~ "ns"
+    )
+  )
+
+pw_sig_ptau217 <- pw_df_ptau217 %>% filter(p.value < 0.05)
+
+blues4 <- brewer.pal(6, "Blues")[3:6]
+
+ptau217_visit<-data_clean%>%
+  ggplot(aes(x=Visit, y=log(pTau217), group=Visit, colour = Visit, fill=Visit))+
+  geom_line(aes(x=Visit, y=log(pTau217), group=id_bisc), inherit.aes = F, alpha=0.1)+
+  geom_boxplot(alpha=0.6, lwd=1)+
+  scale_colour_manual(values = blues4) +
+  scale_fill_manual(values = blues4)+
+  guides(colour = "none", fill = "none") +
+  th+
+  geom_signif(
+    comparisons = split(pw_sig_ptau217[, c("group1","group2")], seq(nrow(pw_sig_ptau217))) |> 
+      lapply(function(x) c(x$group1, x$group2)),
+    annotations = pw_sig_ptau217$p.label,
+    step_increase = 0.1,
+    tip_length = 0.01
+  )+
+  scale_x_discrete(labels= preg_labs)+
+  labs(x = NULL)
+
+#NFL
+
+emm_visit_NFL <- emmeans(fit_base_NFL, ~ Visit)
+pw_NFL <- pairs(emm_visit_NFL, adjust = "tukey")
+pw_df_NFL <- as.data.frame(pw_NFL)%>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".* - ", "", contrast),
+    p.label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE ~ "ns"
+    )
+  )
+
+pw_sig_NFL <- pw_df_NFL %>% filter(p.value < 0.05)
+
+greens4 <- brewer.pal(6, "Greens")[3:6]
+
+NFL_visit<-data_clean%>%
+  ggplot(aes(x=Visit, y=log(NFL), group=Visit, colour = Visit, fill=Visit))+
+  geom_line(aes(x=Visit, y=log(NFL), group=id_bisc), inherit.aes = F, alpha=0.1)+
+  geom_boxplot(alpha=0.6, lwd=1)+
+  scale_colour_manual(values = greens4) +
+  scale_fill_manual(values = greens4) +
+  geom_signif(
+    comparisons = split(pw_sig_NFL[, c("group1","group2")], seq(nrow(pw_sig_NFL))) |> 
+      lapply(function(x) c(x$group1, x$group2)),
+    annotations = pw_sig_NFL$p.label,
+    step_increase = 0.1,
+    tip_length = 0.01
+  )+
+  guides(colour = "none", fill = "none") +
+  th+
+  scale_x_discrete(labels= preg_labs)+
+  labs(x = NULL)
+
+#GFAP
+
+emm_visit_GFAP <- emmeans(fit_base_GFAP, ~ Visit)
+pw_GFAP <- pairs(emm_visit_GFAP, adjust = "tukey")
+pw_df_GFAP <- as.data.frame(pw_GFAP)%>%
+  mutate(
+    group1 = sub(" - .*", "", contrast),
+    group2 = sub(".* - ", "", contrast),
+    p.label = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      TRUE ~ "ns"
+    )
+  )
+
+pw_sig_GFAP <- pw_df_GFAP %>% filter(p.value < 0.05)
+
+purples4 <- brewer.pal(6, "Purples")[3:6]
+
+GFAP_visit<-data_clean%>%
+  ggplot(aes(x=Visit, y=log(GFAP), group=Visit, colour = Visit, fill=Visit))+
+  geom_line(aes(x=Visit, y=log(GFAP), group=id_bisc), inherit.aes = F, alpha=0.1)+
+  geom_boxplot(alpha=0.6, lwd=1)+
+  scale_colour_manual(values = purples4) +
+  scale_fill_manual(values = purples4) +
+   geom_signif(
+    comparisons = split(pw_sig_NFL[, c("group1","group2")], seq(nrow(pw_sig_GFAP))) |> 
+      lapply(function(x) c(x$group1, x$group2)),
+    annotations = pw_sig_GFAP$p.label,
+    step_increase = 0.1,
+    tip_length = 0.01
+  )+
+  guides(colour = "none", fill = "none") +
+  th+
+  scale_x_discrete(labels= preg_labs)+
+  labs(x= NULL)
+
+#visits_plot<-ptau217_visit/NFL_visit/GFAP_visit+ plot_layout(axis_titles  = "collect")
+
+#visits_plot
+#ggsave("visit_plots.png", visits_plot, width = 8, height = 10, units = "in", dpi = 300)
+
+
+
+
+blues2 <- brewer.pal(6, "Blues")[4:5]
+
+ptau217_v3<-data_clean%>%
+  filter(Visit=="v3")%>%
+  filter(!is.na(bl_time.col.del.2cat_m_0y)) %>%
+  rename(Delivery = bl_time.col.del.2cat_m_0y)%>%
+  mutate(Delivery = ifelse(Delivery==0, "Pre-delivery", "Post-delivery"))%>%
+  mutate(Delivery= factor(Delivery, levels = c("Pre-delivery", "Post-delivery"), ordered = T))%>%
+  ggplot(aes(x=Delivery, y=log(pTau217), colour = Delivery, fill=Delivery))+
+  geom_boxplot(alpha=0.6, lwd=1, outliers = F)+
+  geom_jitter(width=0.2, size = 1.8)+
+  scale_colour_manual(values = blues2) +
+  scale_fill_manual(values = blues2) +
+  guides(colour = "none", fill = "none") +
+  geom_signif(
+    comparisons = list(c("Pre-delivery", "Post-delivery")),
+    test = "t.test",
+    map_signif_level = TRUE,
+    tip_length = 0.01
+  ) +
+  th+
+  labs(x = NULL)
+
+greens2 <- brewer.pal(6, "Greens")[5:6]
+
+NFL_v3<-data_clean%>%
+  filter(Visit=="v3")%>%
+  filter(!is.na(bl_time.col.del.2cat_m_0y)) %>%
+  rename(Delivery = bl_time.col.del.2cat_m_0y)%>%
+  mutate(Delivery = ifelse(Delivery==0, "Pre-delivery", "Post-delivery"))%>%
+  mutate(Delivery= factor(Delivery, levels = c("Pre-delivery", "Post-delivery"), ordered = T))%>%
+  ggplot(aes(x=Delivery, y=log(NFL), colour = Delivery, fill=Delivery))+
+  geom_boxplot(alpha=0.6, lwd=1, outliers = F)+
+  geom_jitter(width=0.2, size = 1.8)+
+  scale_colour_manual(values = greens2) +
+  scale_fill_manual(values = greens2) +
+  guides(colour = "none", fill = "none") +
+  geom_signif(
+    comparisons = list(c("Pre-delivery", "Post-delivery")),
+    test = "t.test",
+    map_signif_level = TRUE,
+    tip_length = 0.01
+  ) +
+  th+
+  labs(x = NULL)
+
+purples2 <- brewer.pal(6, "Purples")[4:5]
+
+GFAP_v3<-data_clean%>%
+  filter(Visit=="v3")%>%
+  filter(!is.na(bl_time.col.del.2cat_m_0y)) %>%
+  rename(Delivery = bl_time.col.del.2cat_m_0y)%>%
+  mutate(Delivery = ifelse(Delivery==0, "Pre-delivery", "Post-delivery"))%>%
+  mutate(Delivery= factor(Delivery, levels = c("Pre-delivery", "Post-delivery"), ordered = T))%>%
+  ggplot(aes(x=Delivery, y=log(GFAP), colour = Delivery, fill=Delivery))+
+  geom_boxplot(alpha=0.6, lwd=1, outliers = F)+
+  geom_jitter(width=0.2, size = 1.8)+
+  scale_colour_manual(values = purples2) +
+  scale_fill_manual(values = purples2) +
+  guides(colour = "none", fill = "none") +
+  geom_signif(
+    comparisons = list(c("Pre-delivery", "Post-delivery")),
+    test = "t.test",
+    map_signif_level = TRUE,
+    tip_length = 0.01
+  ) +
+  th+
+  labs(x= NULL)
+
+#delivery_plots<-ptau217_v3+NFL_v3+GFAP_v3+plot_layout(axes  = "collect")
+#delivery_plots
+#ggsave("delivery_plots.png", delivery_plots, width = 9, height = 7, units = "in", dpi = 300)
+
+
+unified_visits_plot<-(ptau217_visit + ptau217_v3 + plot_layout(axes = "collect", widths = c(3, 1))) /
+(NFL_visit    + NFL_v3     + plot_layout(axes = "collect", widths = c(3, 1))) /
+(GFAP_visit   + GFAP_v3   + plot_layout(axes = "collect", widths = c(3, 1)))+
+  plot_annotation(tag_levels = 'A')
+
+ggsave("unified_visits_plots.png", unified_visits_plot, width = 9, height = 11, units = "in", dpi = 300)
+```
 
 ## Figure X
 
@@ -276,6 +603,7 @@ figure_longitudinal
 # Supplementary material
 
 ## Longitudinal regression table
+
 ```{r, echo=F, warning=F}
 table_ptau217<-tbl_regression(fit_poly2_pTau217_clean,
                tidy_fun = broom.mixed::tidy,
@@ -380,8 +708,6 @@ table_merged%>%
 table_merged
 ```
 
-
-
 # Deprecated/unsure
 
 ```{r, eval=F, include=F}
@@ -418,6 +744,7 @@ plot(log(analysis_data$pTau217), analysis_data$slope_pTau217)
 ```
 
 ## SOlution 1: predict()
+
 fit non linear models with all 4 visits, use 60% for training and 40% for test.
 
 ```{r, eval=F, include=F}
