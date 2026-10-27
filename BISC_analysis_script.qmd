@@ -4,6 +4,7 @@ author: "Clazz"
 format: docx
 editor: source
 bibliography: references.bib
+csl: elsevier-vancouver.csl
 ---
 
 ```{r, include = F}
@@ -26,7 +27,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r, include=F, warning=F}
-data_clean<-read_excel("G:/My Drive/Data/BISC/long_df_20260709.xlsx")%>%
+data_clean<-read_excel("G:/My Drive/Data/BISC/long_df_20261015.xlsx")%>%
   mutate(time_storage_ptau217 = case_when(Visit == "v1" ~ as.numeric(bl_edta.time.col.stor_m_12w),
                                    Visit == "v2" ~ as.numeric(bl_edta.time.col.stor_m_32w),
                                    Visit == "v3" ~ as.numeric(bl_time.col.store.edta_m_0y)),
@@ -43,41 +44,41 @@ data_clean<-read_excel("G:/My Drive/Data/BISC/long_df_20260709.xlsx")%>%
          Visit=factor(Visit),
          gestage_0y_c_weeks = gestage_0y_c_days/7,
          bl_time.col.del.2cat_m_0y = factor(bl_time.col.del.2cat_m_0y))%>%
-  dplyr::select(id_bisc, age_12w_m, advanced_mat_age, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, parity_m_2cat, Visit, GA_weeks, scaled_GA_weeks, hosp_recruit_m_12w, hosp_recruit_m_12w_code, bl_gest.age.del_m_0y, bl_gest.age.extr_c_0y, bl_gest.age.del_m_0y, pTau217, GFAP, NFL, time_storage_ptau217, time_storage_NFL_GFAP, C_DG, C_hel, C_hip, C_pree, C_peeg, preg_pathology, gestage_0y_c_weeks, bl_time.col.del.2cat_m_0y)
+  dplyr::select(id_bisc, age_12w_m, advanced_mat_age, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, parity_m_2cat, Visit, GA_weeks, scaled_GA_weeks, hosp_recruit_m_12w, hosp_recruit_m_12w_code, bl_gest.age.del_m_0y, bl_gest.age.extr_c_0y, bl_gest.age.del_m_0y, pTau217, GFAP, NFL, time_storage_ptau217, time_storage_NFL_GFAP, C_DG, C_hel, C_hip, C_pree, C_peeg, preg_pathology, gestage_0y_c_weeks, bl_time.col.del.2cat_m_0y, elective_cesarean, cesarean_type_m)
+
+data_clean%>%
+  filter(Visit=="v4")
 ```
 
 # Introduction
 
-Pregnancy is a highly demanding phyysiological process that deeply impacts all systems of the human body @oleary1991; @huang2021; @hadden2009. Important neuroanatomical changes are driven by surges in sex-steroid hormones, particularly estrogen and progesterone. These all-encompassing changes impact both the neocortex and subcortical areas @servin-barthet2025, where significant grey matter volume shifts show a U-shaped evolution which peaks around the 3rd trimester @hoekzema2016; @paternina-die2024. Although the trajectory of these changes show levels that come back to pre-pregnancy levels during porst-partum, a "pregnancy signature" is identifiable for at least 7 year after last parturition. It is still not fully understood what kind of biological process underlie the changes in GMV observed during pregnancy, and if neurodegeneraive processs drive some of these changes in normotensive pregnancies.
+Pregnancy is a highly demanding physiological process that deeply impacts all systems of the human body @oleary1991; @huang2021; @hadden2009. Important neuroanatomical changes are driven by surges in sex-steroid hormones, particularly estrogen and progesterone. These all-encompassing changes impact both the neocortex and subcortical areas @Pritschet2024, where significant grey matter volume shifts show a U-shaped evolution which peaks around the 3rd trimester @hoekzema2016; @servin-barthet2025. Although the trajectory of these changes show levels that come back to pre-pregnancy levels during porst-partum, a "pregnancy signature" is identifiable for at least 7 year after last parturition @martínez-garcía2021.
 
-Cerebral biomarkers may be useful in identifying neurodegenerative processes. Neurofilament light chain (NfL) is an axonal protein useful to detect axon loss \[ref\]. Studies looking at longitudinal levels of NfL during pregnancy have mostly done so in the context of hypertensive pregnancy disorders to characterise the levels of this biomarker in a clinical context, and have therefore used at-risk populations. The controls subjects of these studies offer some data on healthy subjects showing changes in NFL throughout the gestation, which sees a non-linear evolution peaking at 3rd term @cuello2019; @bergman2018.
+It is still not fully understood what kind of biological process underlie the changes in GMV observed during pregnancy, and if neurodegeneraive processs drive some of these changes in normotensive pregnancies. Studies looking at longitudinal levels of blood-based biomarkers during pregnancy have mostly done so in the context of hypertensive pregnancy disorders to characterise the levels of this biomarker in a clinical context, and have therefore used at-risk populations @cuello2019; @bergman2018.
 
-p-Tau217 is a disease specific . One study found that hypertensive disorders of pregnancy were associated with higher levels of p-Tau217 in cognitively healthy middle-aged adults \[https://doi.org/10.1016/j.tjpad.2025.100316\]. Total tau lowers throuhgout pregnancy in normotensive cases (36 cases) @bergman2018.
-
-Glial fibrillary acidic protein (GFAP) is a filament protein used to identify astrocyte reactivity, usually in response to neuroinflammation or neurodegeneration [cite]. 
-
-
-
-
-
-
-NFL: - higher levels at 3rd term in women with pre eclampsia - NfL levels rise throuhgout pregnancy in women at risk of pre-eclampsia. Levels are higher across pregnancy in women who do end up developing pre-eclampsia, and age is also related to higher levels throuhgout 10.1161/HYPERTENSIONAHA.117.10314 - in the case of adverse events linked to preeclampsia like pulmonary embolisms and neurological complications, NfL levels are associated with cognitive impairments https://doi.org/10.1016/j.preghy.2022.12.001 - in healthy pregnancies, NFL levels are higher in 3rd term compared to 1st term and puerperium 10.1111/ene.13965 - healthy women show a small increase in NFL levels towards term https://doi.org/10.1371/journal.pone.0196025
-
-we still don't know: if the changes persist at post-partum if the changes happen in first pregnancy an subsequent if the birth itself triggers some of the changes no data on gfap no data on ptau217
-
-novel: - post-partunm data - pre and post birth data - very healthy cohort of women - good sample size and available number of visits
+Cerebral biomarkers may be useful in identifying neurodegenerative processes. p-Tau217, Neurofilament light chain (NfL) and Glial fibrillary acidic protein (GFAP) are useful predictive and diagnostic tools for neurodegenerative processes. Here, we examine the longitudinal changes of these blood-based biomarkers in 130 pregnant subjects, from 1st term to 4 years post delivery, to enquire if some of the neuroanatomical changes observed reveal some level of neurodegeneration.
 
 # Methods
 
-## Cohort
+BiSC (Barcelona Life Study Cohort) is an ongoing population-based birth cohort in Barcelona, Spain. The detailed description of recruitment, follow-ups and data collection in BiSC has been detailed previously @dadvand2024. The BiSC study was approved by the Ethical Review Board of Parc de Salut Mar (CEIm - Parc de Salut Mar). Families received detailed information about the study aims and procedures and provided written informed consent before participation.
 
-## Biomarkers
+Need to include here the ones that you included too and based on what: we prioritized those with plasma samples available. I remember we did a priorization list. Maybe ferran has it?
 
-## Statistical analysis
+Blood acquisition has been described previously @cserbik2023. Plasma and serum samples were thawed at room temperature for 1h, vortexed and centrifuged at 4000g for 10 minutes before analysis. Plasma p-tau217 was measured using the Simoa® p-Tau217 Advantage PLUS Reagent Kit (cat nº 104588, lot nº 504407). Serum NfL and GFAP were measured using the Simoa® Neuro 2-Plex B Advantage Kit (cat nº103520, lot nº 504401). All analyses were performed using the Simoa HD-X instrument (Quanterix) at the Fluid Biomarkers Facility at BBRC, according to manufacturer's instructions.
+
+For statistical analysis, all biomarkers were log-transformed prior to analysis to reduce skewness and improve model fit. Descriptive statistics were performed using the Kruskal-Wallis rank sum test for continuous variables, chi-squared test for categorical variables, and Fisher’s exact test for binary variables.
+
+Primary analyses assessed the effect of visit number on levels of each biomarker of interest separately using mixed-effect models with random intercepts. Analyses were adjusted for age at first visit and hospital of recruitment.
+
+Sensitivity analyses repeated the above analyses in normotensive pregnancies only to disentangle contributions of healthy pregnancy and hypertensive pregnancies on biomarker changes. Additional analyses tested whether blood collection timing at the delivery visit, either pre or post delivery, explained some of the association between visit number and biomarker levels. A binary variable indicating timing of the blood collection was added as covariate to understand if the delivery event itself may be associated with the changes observed.
+
+Exploratory analyses tested the interactive effects of parity, age and BMI with number of visits to understand if these factors modified the changes in blood-biomarkers. Each of these variables were included as an interactive term with the number of visits in a separate mixed-effects model.
+
+Secondary analyses focused on the gestational period only, to better characterise the shape of the biomarker trajectory throughout gestation. Linear mixed-effect models with random intercepts examined linear, quadratic, and cubic associations with gestational age (weeks since last period), adjusting for maternal age at first visit, sample storage time (hours), and recruitment hospital. The best fitting model was selected using ANOVA tests of fit.
 
 # Results
 
-## Cohort description
+## descriptives
 
 ```{r, include=F, warning=F}
 
@@ -86,18 +87,21 @@ data_table<-data_clean%>%
   mutate(number_visits = n())%>%
   slice_head()%>%
   ungroup()%>%
-  dplyr::select(age_12w_m, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, hosp_recruit_m_12w_code, parity_m_2cat, gestage_0y_c_weeks, number_visits, preg_pathology, advanced_mat_age, , bl_time.col.del.2cat_m_0y)%>%
+  dplyr::select(age_12w_m, bmi_m_12w, educ_level_m_2cat, ethnicity_m_3cat, hosp_recruit_m_12w, parity_m_2cat, gestage_0y_c_weeks, number_visits, preg_pathology, advanced_mat_age, , bl_time.col.del.2cat_m_0y, cesarean_type_m)%>%
   mutate(ethnicity_m_3cat = case_when(ethnicity_m_3cat == "eur" ~ "European",
                                       ethnicity_m_3cat == "lat_amr" ~ "Latin american",
                                       ethnicity_m_3cat == "other" ~ "Other"),
-         premie = ifelse(gestage_0y_c_weeks<37, 1, 0))
+         premie = ifelse(gestage_0y_c_weeks<37, 1, 0),
+         cesarean_type_m = case_when(cesarean_type_m == "vaginal_birth" ~ "Vaginal birth",
+                                     cesarean_type_m == "breakthrough_ces" ~ "Emergency c-section",
+                                     cesarean_type_m == "elective_ces" ~ "Planned c-section"))
 
 desc_table<-tbl_summary(data_table,
                         missing="no",
                         label= list(age_12w_m = "Age at first visit",
                                     bmi_m_12w = "BMI",
                                     educ_level_m_2cat = "Education",
-                                    hosp_recruit_m_12w_code = "Hospital of recruitment",
+                                    hosp_recruit_m_12w = "Hospital of recruitment",
                                     parity_m_2cat = "Parity",
                                     gestage_0y_c_weeks = "Gestational age at birth (weeks)",
                                     ethnicity_m_3cat = "Ethnicity",
@@ -105,7 +109,8 @@ desc_table<-tbl_summary(data_table,
                                     advanced_mat_age = "Advanced maternal age",
                                     number_visits = "Number of available visits",
                                     bl_time.col.del.2cat_m_0y = "Delivery",
-                                    premie = "Premature birth"),
+                                    premie = "Premature birth",
+                                    cesarean_type_m = "Delivery type"),
                         value = list(preg_pathology= "1",
                                      advanced_mat_age = "1",
                                      advanced_mat_age = "1"))%>%
@@ -119,12 +124,49 @@ desc_table<-tbl_summary(data_table,
 n_subject<-nrow(data_table)
 
 
-
+desc_table
 ```
 
-A total of `r n_subject` participants were included in our analyses. The average gestational age at delivery was 40.14 weeks, with only 3 participants having had a premature birth. 6 participants had pregnancy complications: 2 had gestational diabetes, and 4 had hypertensive disorders of pregnancy. 50% of our sample have all 4 visits, 39% have 3 visits and 11% have 2.
+This study included a total of `r n_subject` participants from the BiSC (Barcelona Life Study Cohort), an ongoing population-based birth cohort. Descriptive statistics for the cohort can be found in Table 1. Biomarker measurements were available for 93 participants at visit 1, 130 at visit 2, 116 at visit 3 and 101 at visit 4. Part of the cohort was recruited during the COVID-19 pandemic.
 
-## Biomarker levels singificantly change around delivery
+## Cross-sectional analyses - V1
+
+```{r, include=F, warning=F}
+data_clean_v1<-data_clean%>%
+  filter(Visit=="v1")
+
+# age
+fit_cross_ptau217<-lm(log(pTau217) ~  age_12w_m , data = data_clean_v1)
+summary(fit_cross_ptau217)
+
+fit_cross_NFL<-lm(log(NFL) ~  age_12w_m , data = data_clean_v1)
+summary(fit_cross_NFL)
+
+fit_cross_GFAP<-lm(log(GFAP) ~  age_12w_m , data = data_clean_v1)
+summary(fit_cross_GFAP)
+
+# parity
+fit2_cross_ptau217<-lm(log(pTau217) ~  parity_m_2cat , data = data_clean_v1)
+summary(fit2_cross_ptau217)
+
+fit2_cross_NFL<-lm(log(NFL) ~  parity_m_2cat , data = data_clean_v1)
+summary(fit2_cross_NFL)
+
+fit2_cross_GFAP<-lm(log(GFAP) ~  parity_m_2cat , data = data_clean_v1)
+summary(fit2_cross_GFAP)
+
+# bmi
+fit3_cross_ptau217<-lm(log(pTau217) ~  bmi_m_12w , data = data_clean_v1)
+summary(fit3_cross_ptau217)
+
+fit3_cross_NFL<-lm(log(NFL) ~  bmi_m_12w , data = data_clean_v1)
+summary(fit3_cross_NFL)
+
+fit3_cross_GFAP<-lm(log(GFAP) ~  bmi_m_12w , data = data_clean_v1)
+summary(fit3_cross_GFAP)
+```
+
+## Longitudinal analysis - Visits
 
 ```{r, include=F, warning=F}
 fit_base_ptau217<-lmer(log(pTau217) ~ Visit + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
@@ -139,9 +181,25 @@ summary(fit_base_GFAP)
 p_nfl_v4<-p.adjust(c(tidy(fit_base_GFAP)$p.value[4], tidy(fit_base_NFL)$p.value[4], tidy(fit_base_ptau217)$p.value[4]), method = "fdr")[2]
 
 p_ptau_v4<-p.adjust(c(tidy(fit_base_GFAP)$p.value[4], tidy(fit_base_NFL)$p.value[4], tidy(fit_base_ptau217)$p.value[4]), method = "fdr")[3]
+
+fit_ptau217_no_pat<-lmer(log(pTau217) ~ Visit+bl_time.col.del.2cat_m_0y + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean[data_clean$preg_pathology==0,])
+summary(fit_ptau217_no_pat)
+
+fit_NFL_no_pat<-lmer(log(NFL) ~ Visit+bl_time.col.del.2cat_m_0y + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean[data_clean$preg_pathology==0,])
+summary(fit_NFL_no_pat)
+
+fit_GFAP_no_pat<-lmer(log(GFAP) ~ Visit+bl_time.col.del.2cat_m_0y + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean[data_clean$preg_pathology==0,])
+summary(fit_GFAP_no_pat)
+
+p_ptau_pat<-p.adjust(c(tidy(fit_GFAP_no_pat)$p.value[3], tidy(fit_NFL_no_pat)$p.value[3], tidy(fit_ptau217_no_pat)$p.value[3]), method = "fdr")[3]
+
 ```
 
-Biomarker levels showed a significant change at visit 3, which coincides with the time of delivery. Serum NfL (β=`r tidy(fit_base_NFL)$estimate[3]`, p=`r tidy(fit_base_NFL)$p.value[3]`, q\<.001) and GFAP (β=`r tidy(fit_base_GFAP)$estimate[3]`, p=`r tidy(fit_base_GFAP)$p.value[3]`, q\<.001) showed higher values, whilst plasma pTau-217 showed lower values (β=`r tidy(fit_base_ptau217)$estimate[3]`, p=`r tidy(fit_base_ptau217)$p.value[3]`, q\<.001). Higher values at visit 4 were observed for NfL (β=`r tidy(fit_base_NFL)$estimate[4]`, p=`r tidy(fit_base_NFL)$p.value[4]`, q= `r p_nfl_v4`) and pTau-217 (β=`r tidy(fit_base_ptau217)$estimate[4]`, p=`r tidy(fit_base_ptau217)$p.value[4]`, q= `r p_ptau_v4`), but this did not remain significant after multiple comparison.
+Serum NfL, serum GFAP and plasma p-tau217 showed comparable levels between 12 and 32 gestational weeks, but significantly changed at the time of delivery (Figure 1). Specifically, levels of serum NfL and GFAP increased at delivery (NfL: β=`r tidy(fit_base_NFL)$estimate[3]`, 95% CI \[`r tidy(fit_base_NFL, conf.int = TRUE)$conf.low[3]`, `r tidy(fit_base_NFL, conf.int = TRUE)$conf.high[3]`\], q\<.001; GFAP: β=`r tidy(fit_base_GFAP)$estimate[3]`, 95% CI \[`r tidy(fit_base_GFAP, conf.int = TRUE)$conf.low[3]`, `r tidy(fit_base_GFAP, conf.int = TRUE)$conf.high[3]`\], q\<.001) , while levels of plasma p-tau217 (β=`r tidy(fit_base_ptau217)$estimate[3]`, 95% CI \[`r tidy(fit_base_ptau217, conf.int = TRUE)$conf.low[3]`, `r tidy(fit_base_ptau217, conf.int = TRUE)$conf.high[3]`\], q\<.001). Biomarker levels at 4 years post-partum were comparable to levels observed at 12 and 32 gestational weeks. Higher values were observed at 4 years post-delivery compared to early pregnancy for NfL (β=`r tidy(fit_base_NFL)$estimate[4]`, 95% CI \[`r tidy(fit_base_NFL, conf.int = TRUE)$conf.low[4]`, `r tidy(fit_base_NFL, conf.int = TRUE)$conf.high[4]`\], q= `r p_nfl_v4`) and p-tau217 (β=`r tidy(fit_base_ptau217)$estimate[4]`, 95% CI \[`r tidy(fit_base_ptau217, conf.int = TRUE)$conf.low[4]`, `r tidy(fit_base_ptau217, conf.int = TRUE)$conf.high[4]`\], q= `r p_ptau_v4`), but this did not remain significant after multiple comparison correction.
+
+We then asked if blood biomarker changes were driven by any pregnancy related pathology. Sensitivity analysis including participants with confirmed absence of pregnancy related pathology (n=117) showed similar results with increased levels of serum NfL and GFAP only at delivery (Supplementary Figure X).
+
+### Pre post delivery
 
 ```{r, include=F, warning=F}
 #Sensitivity analysis: delivery time
@@ -155,9 +213,14 @@ summary(fit_delivery_NFL)
 fit_delivery_GFAP<-lmer(log(GFAP) ~ Visit+bl_time.col.del.2cat_m_0y + age_12w_m + hosp_recruit_m_12w_code+ (1|id_bisc), data = data_clean)
 summary(fit_delivery_GFAP)
 
+
+nfl_parity<-p.adjust(c(tidy(fit_delivery_ptau217)$p.value[5], tidy(fit_delivery_NFL)$p.value[5], tidy(fit_delivery_GFAP)$p.value[5]), method = "fdr")[2]
+
 ```
 
-Blood samples collected after delivery at visit 3 showed slightly higher NfL values (β=`r tidy(fit_delivery_NFL)$estimate[5]`, p=`r tidy(fit_delivery_NFL)$p.value[5]`), while the main effect remained stable. No association was found between timing of sample collection at visit 3 for GFAP or pTau-217.
+TSensitivity analyses explored whether blood collection timing at delivery \[pre vs post birth\] impacted the association between biomarker levels and visit. In participants who had this information available (n=97), we covaried our linear model by this binary variable. We observed no differences on the levels of any biomarkers between pre and post delivery at that time point (Figure 1D). Time of sampling had a nominal effect on NfL levels only, but this did not remain significant after correction for multiple comparison (β=`r tidy(fit_delivery_NFL)$estimate[5]`, 95% CI \[`r tidy(fit_delivery_NFL, conf.int = TRUE)$conf.low[5]`, `r tidy(fit_delivery_NFL, conf.int = TRUE)$conf.high[5]`\], q= `r nfl_parity`) (Figure 1D). The main association between biomarker and visit remained, suggesting that the changes observed were not solely due to the birth itself. No association was found between timing of sample collection for GFAP or p-tau217.
+
+### Parity, age, bmi
 
 ```{r, include=F, warning=F}
 fit_parity_ptau217<-lmer(log(pTau217) ~ Visit * parity_m_2cat+hosp_recruit_m_12w_code+age_12w_m + (1|id_bisc), data = data_clean)
@@ -168,6 +231,8 @@ summary(fit_parity_NFL)
 
 fit_parity_GFAP<-lmer(log(GFAP) ~ Visit * parity_m_2cat+hosp_recruit_m_12w_code+age_12w_m + (1|id_bisc), data = data_clean)
 summary(fit_parity_GFAP)
+
+
 
 nfl_parity<-p.adjust(c(tidy(fit_parity_ptau217)$p.value[11], tidy(fit_parity_NFL)$p.value[11], tidy(fit_parity_GFAP)$p.value[11]), method = "fdr")[2]
 
@@ -185,9 +250,9 @@ summary(test3)
 
 ```
 
-Being nulliparous was significantly associated with lower NfL (β=`r tidy(fit_parity_NFL)$estimate[11]`, p=`r tidy(fit_parity_NFL)$p.value[11]`, q= `r nfl_parity`) and GFAP (β=`r tidy(fit_parity_GFAP)$estimate[11]`, p=`r tidy(fit_parity_GFAP)$p.value[11]`, q= `r gfap_parity`) values at visit 4.
+We then asked whether these changes were the same depending on factors like previous parity, BMI, age, hospital of recruitment or COVID pandemic period. Introducing an interaction term between parity (previously nulliparous vs previously parous) and visits showed that being nulliparous was significantly associated with lower levels of NfL and GFAP (NfL: β=`r tidy(fit_parity_NFL)$estimate[11]`, 95% CI \[`r tidy(fit_parity_NFL, conf.int = TRUE)$conf.low[11]`, `r tidy(fit_parity_NFL, conf.int = TRUE)$conf.high[11]`\], q= `r nfl_parity`; GFAP: β=`r tidy(fit_parity_GFAP)$estimate[11]`, 95% CI \[`r tidy(fit_parity_GFAP, conf.int = TRUE)$conf.low[11]`, `r tidy(fit_parity_GFAP, conf.int = TRUE)$conf.high[11]`\], q= `r gfap_parity`) values, but only at 4 years post-partum. No effect of age, BMI, hospital of recruitment, or recruitment through the COVID pandemic was observed.
 
-## Biomarkers change non-linearly during pregnancy
+## Longitudinal analysis - gest age
 
 ```{r, include=F, warning=F}
 # ptau217
@@ -234,10 +299,14 @@ anova_GFAP<-anova(fit_linear_GFAP_clean, fit_poly2_GFAP_clean, fit_poly3_GFAP_cl
 
 # poly = 2 fits best
 
+ptau_parity_line<-p.adjust(c(tidy(fit_poly2_NFL_clean)$p.value[2], tidy(fit_poly2_GFAP_clean)$p.value[2], tidy(fit_poly2_pTau217_clean)$p.value[2]), method = "fdr")[3]
 
+ptau_parity_quad<-p.adjust(c(tidy(fit_poly2_NFL_clean)$p.value[3], tidy(fit_poly2_GFAP_clean)$p.value[3], tidy(fit_poly2_pTau217_clean)$p.value[3]), method = "fdr")[3]
 ```
 
-Gestational age was significantly associated with each biomarker trajectory, and quadratic models resulted in the best fit for ptau217 (p=`r anova_ptau217$"Pr(>Chisq)"[2]`), NfL (p=`r anova_NFL$"Pr(>Chisq)"[2]`), and GFAP (p=`r anova_GFAP$"Pr(>Chisq)"[2]`) (Table X). Serum GFAP (linear β=`r tidy(fit_poly2_GFAP_clean)$estimate[2]`, p=`r tidy(fit_poly2_GFAP_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_GFAP_clean)$estimate[3]`, p=`r tidy(fit_poly2_GFAP_clean)$p.value[3]`) and NfL (linear β=`r tidy(fit_poly2_NFL_clean)$estimate[2]`, p=`r tidy(fit_poly2_NFL_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_NFL_clean)$estimate[3]`, p=`r tidy(fit_poly2_NFL_clean)$p.value[3]`) followed U-shaped trajectories, plateauing in the first 2 visits then increasing at term. Plasma p-tau217 also remained stable through the first 2 visits before declining toward term (linear β=`r tidy(fit_poly2_pTau217_clean)$estimate[2]`, p=`r tidy(fit_poly2_pTau217_clean)$p.value[2]`; quadratic β=`r tidy(fit_poly2_pTau217_clean)$estimate[3]`, p=`r tidy(fit_poly2_pTau217_clean)$p.value[3]`) (Figure X, Table X).
+To better characterize the shape of biomarker changes across pregnancy, we performed a secondary analysis restricted to the gestational window and delivery period. We used measurements from gestational week 12 to delivery (visit 1 to 3), and included gestational age, in weeks, modelled as a continuous measure of time. For every biomarker, linear, quadratic and cubic terms were evaluated and ANOVA testing was used to find the best fit (Supplementary Table X). Quadratic models resulted in the best fit for all the three biomarkers (Supplementary Table X). Serum NfL and GFAP followed U-shaped trajectories, showing little changes until week 38 then increasing at term (Figure 1F, Supplementary Table X). Plasma p-tau217 showed a similar pattern of stable values through the first 2 visits before declining toward term (Figure 1I, Supplementary Table X).
+
+# Sensitivity analysis no pathology
 
 ```{r, include=F, warning=F}
 fit_poly2_pTau217_no_pathology <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T) + age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg[data_clean_preg$preg_pathology==0,])
@@ -251,18 +320,20 @@ summary(fit_poly2_GFAP_no_pathology)
 
 ```
 
-Sensitivity analyses only including participants with confirmed absence of pregnancy pathology (n=117) yielded similar results for serum GFAP (linear β=`r tidy(fit_poly2_GFAP_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_GFAP_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_GFAP_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_GFAP_no_pathology)$p.value[3]`) and NfL (linear β=`r tidy(fit_poly2_NFL_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_NFL_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_NFL_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_NFL_no_pathology)$p.value[3]`), and plasma p-tau217 (linear β=`r tidy(fit_poly2_pTau217_no_pathology)$estimate[2]`, p=`r tidy(fit_poly2_pTau217_no_pathology)$p.value[2]`; quadratic β=`r tidy(fit_poly2_pTau217_no_pathology)$estimate[3]`, p=`r tidy(fit_poly2_pTau217_no_pathology)$p.value[3]`).
+Sensitivity analyses including only participants with confirmed absence of pregnancy pathology (n=117) yielded similar results (see Supplementary Table X). Age, previous parity, BMI or hospital of recruitment showed no significant interaction with the trajectories of the biomarkers.
+
+### age, parity, bmi
 
 ```{r, include=F, warning=F}
 #age interaction
 
-fit_poly2_pTau217_age <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T) * advanced_mat_age+ age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg)
+fit_poly2_pTau217_age <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T) * age_12w_m + hosp_recruit_m_12w_code  +time_storage_ptau217+ (1|id_bisc), data = data_clean_preg)
 summary(fit_poly2_pTau217_age)
 
-fit_poly2_NFL_age <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T) * advanced_mat_age+age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+fit_poly2_NFL_age <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T) * age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
 summary(fit_poly2_NFL_age)
 
-fit_poly2_GFAP_age <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T) * advanced_mat_age+age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+fit_poly2_GFAP_age <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T) * age_12w_m + hosp_recruit_m_12w_code  +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
 summary(fit_poly2_GFAP_age)
 
 # parity interaction
@@ -278,21 +349,31 @@ summary(fit_poly2_GFAP_parity)
 
 #hospital recruitment interaction
 
-fit_poly2_pTau217_ses <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T)*hosp_recruit_m_12w_code + age_12w_m   +time_storage_ptau217+  (1|id_bisc), data = data_clean_preg)
+fit_poly2_pTau217_ses <- lmer(log(pTau217) ~ poly(GA_weeks, 2, raw= T)*bmi_m_12w + age_12w_m   +time_storage_ptau217+  (1|id_bisc), data = data_clean_preg)
 summary(fit_poly2_pTau217_ses)
 
-fit_poly2_NFL_ses <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T)*hosp_recruit_m_12w_code + age_12w_m   +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
+fit_poly2_NFL_ses <- lmer(log(NFL) ~ poly(GA_weeks, 2, raw= T)*bmi_m_12w + age_12w_m   +time_storage_NFL_GFAP+ (1|id_bisc), data = data_clean_preg)
 summary(fit_poly2_NFL_ses)
 
-fit_poly2_GFAP_ses <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T)*hosp_recruit_m_12w_code + age_12w_m   +time_storage_NFL_GFAP+  (1|id_bisc), data = data_clean_preg)
+fit_poly2_GFAP_ses <- lmer(log(GFAP) ~ poly(GA_weeks, 2, raw= T)*bmi_m_12w + age_12w_m   +time_storage_NFL_GFAP+  (1|id_bisc), data = data_clean_preg)
 summary(fit_poly2_GFAP_ses)
 ```
 
-Age, previous parity or hospital of recruitment showed no significant interaction with the trajectories of the biomarkers.
-
 # Discussion
 
-GFAP present in foetus and umbilical chord [https://doi.org/10.1038/s41390-019-0439-z]
+This study examines the longitudinal trajectories of blood NfL, GFAP and p-tau217 across pregnancy, delivery and post-partum. All three biomarkers showed significant temporal variation, with the largest changes occurring around delivery: NfL and GFAP concentrations increased, whereas p-tau217 decreased. At four years postpartum, concentrations were comparable to those observed during early pregnancy. Together, these findings indicate that pregnancy and the peripartum period are accompanied not only by the previously described neuroanatomical adaptations, but also by changes in circulating biomarkers related to neuronal and astroglial biology.
+
+We observed significant rises in concentration of serum NfL and GFAP coinciding with delivery. These changes remained when including normotensive pregnancies only. Longitudinal changes in serum and plasma NfL have previously been described @cuello2019; @bergman2018, and our results build on these findings by showing that the peak at delivery comes back to levels comparable with the ones observed in early pregnancy, and that this may depend on previous parity status. Evidence from patients with preeclampsia shows that NfL levels show an earlier and sharper rise compared to controls @evers2018, suggesting part of this could also be due to fetal stress.
+
+Interestingly, we observed significant lower levels of p-tau217 coinciding with delivery. Although p-tau217 is commonly associated with the development of AD pathology, evidence pinpoints to more broader roles of this axonal stabilizing protein @sinsky2021. Higher levels of this protein are associated with maternal hypertension @evers2018 and hypertension in older age @Yong2025. In-vitro and in-vivo approaches have shown that cis-p-tau, an alternative conformation of Tau, is increased in serum of pregnant women with preeclampsia @jash2023. Very high levels of p-tau217 have been detected in newborns, surpassing those observed in AD, suggesting that phosphorylation of tau might be involved in processes not directly related to AD, including pregnancy abnormalities and neurodevelopmental processes .
+
+Interestingly, acquiring the blood sample before or after the birth did not influence biomarker concentrations. on the delivery event itself, indicating that the physical strain caused by the moment of birth itself is not behind these changes and that these changes occur under healthy physiological conditions. It is important to note that participants very likely had already initiated labour at the time of blood collection sampling in this visit, which could have riven some of the chnages observed due to the inflammation and immune changes incurred by the event @gomez-lopez2014.
+
+Zooming in on the gestation period, we found that all biomarkers followed a non-linear, trajectory, characterised by little changes in levels between weeks 12 and 37, and a sharp increase toward delivery. This was consistent regardless of pathology or other kinds of parameters. Interestingly, these dynamic changes do not appear to resemble the trajectory of neuroanatomical changes previously reported in literature @servin-barthet2025; @Pritschet2024, which follow a much more gradual rise that starts from the first trimester. This indicates the blood changes observed may be related to perinatal processes, perhaps related to labour adaptation and initiation.
+
+The main limitation of our study is the lack of measurements from umbilical cord and placenta. Circulating biomarkers can be influenced by combined effects of maternal production and clearance, placental secretion directly into the maternal circulation, and, to a lesser extent, transplacental transfer or shedding of fetal-derived material. Previous studies have shown presence of GFAP @mir2019, p-tau217 @gonzalez-ortiz2025 in umbilical cord blood samples, meaning our results could be driven by fetal production. Secondly, The lack of additional timepoints during the post-partum period is a missed opportunity to better understand biomarkers trajectories in such a crucial time for recovery. Additionally, the lack of concurrent structural neuroimaging prevents direct links between biomarker trajectories and MRI changes. Finally, analysis was carried out using a predominantly healthy cohort, which limits generalizability and the ability to assess associations with pregnancy complications and postpartum psychological outcomes.
+
+To conclude, our study highlights that biomarkers traditionally associated with neurodegenerative processes show a dynamic trajectory during pregnancy and post-partum. These results, taken from a predominantly healthy cohort, can help establish normal biomarker baselines to be compared with concentration levels in pathological pregnancies and better understand the underlying peripheral and brain processes underlying these pathologies. However, additional work is still needed to characterise the biological processes that uderlie neuroanatomical changes observed during human pregnancies.
 
 # Tables
 
@@ -374,7 +455,9 @@ ptau217_visit<-data_clean%>%
       lapply(function(x) c(x$group1, x$group2)),
     annotations = pw_sig_ptau217$p.label,
     step_increase = 0.1,
-    tip_length = 0.01
+    tip_length = 0.01,
+    textsize = 8,
+    vjust = 0.6
   )+
   scale_x_discrete(labels= preg_labs)+
   labs(x = NULL)
@@ -410,7 +493,9 @@ NFL_visit<-data_clean%>%
       lapply(function(x) c(x$group1, x$group2)),
     annotations = pw_sig_NFL$p.label,
     step_increase = 0.1,
-    tip_length = 0.01
+    tip_length = 0.01,
+    textsize = 8,
+    vjust = 0.6
   )+
   guides(colour = "none", fill = "none") +
   th+
@@ -448,7 +533,9 @@ GFAP_visit<-data_clean%>%
       lapply(function(x) c(x$group1, x$group2)),
     annotations = pw_sig_GFAP$p.label,
     step_increase = 0.1,
-    tip_length = 0.01
+    tip_length = 0.01,
+    textsize = 8,
+    vjust = 0.6
   )+
   guides(colour = "none", fill = "none") +
   th+
@@ -481,7 +568,8 @@ ptau217_v3<-data_clean%>%
     comparisons = list(c("Pre-delivery", "Post-delivery")),
     test = "t.test",
     map_signif_level = TRUE,
-    tip_length = 0.01
+    tip_length = 0.01,
+    textsize = 6
   ) +
   th+
   labs(x = NULL)
@@ -504,7 +592,8 @@ NFL_v3<-data_clean%>%
     comparisons = list(c("Pre-delivery", "Post-delivery")),
     test = "t.test",
     map_signif_level = TRUE,
-    tip_length = 0.01
+    tip_length = 0.01,
+    textsize = 6
   ) +
   th+
   labs(x = NULL)
@@ -527,7 +616,8 @@ GFAP_v3<-data_clean%>%
     comparisons = list(c("Pre-delivery", "Post-delivery")),
     test = "t.test",
     map_signif_level = TRUE,
-    tip_length = 0.01
+    tip_length = 0.01,
+    textsize = 6
   ) +
   th+
   labs(x= NULL)
@@ -537,12 +627,7 @@ GFAP_v3<-data_clean%>%
 #ggsave("delivery_plots.png", delivery_plots, width = 9, height = 7, units = "in", dpi = 300)
 
 
-unified_visits_plot<-(ptau217_visit + ptau217_v3 + plot_layout(axes = "collect", widths = c(3, 1))) /
-(NFL_visit    + NFL_v3     + plot_layout(axes = "collect", widths = c(3, 1))) /
-(GFAP_visit   + GFAP_v3   + plot_layout(axes = "collect", widths = c(3, 1)))+
-  plot_annotation(tag_levels = 'A')
 
-ggsave("unified_visits_plots.png", unified_visits_plot, width = 9, height = 11, units = "in", dpi = 300)
 ```
 
 ## Figure X
@@ -575,7 +660,7 @@ make_biomarker_plot <- function(biomarker, storage_var, fit_linear, fit_poly2, f
 
   ggplot() +
     geom_point(data = data, aes(x = GA_weeks, y = log(.data[[biomarker]])),
-               alpha = 0.2, size = 1) +
+               alpha = 0.2, size = 1.2) +
     geom_line(data = data, aes(x = GA_weeks, y = log(.data[[biomarker]]), group = id_bisc),
               alpha = 0.1) +
     geom_line(data = pred_poly2, aes(x = GA_weeks, y = predicted,
@@ -583,7 +668,10 @@ make_biomarker_plot <- function(biomarker, storage_var, fit_linear, fit_poly2, f
     scale_color_manual(values = c(poly2 = "deepskyblue1"), labels = "Quadratic polynomial") +
     scale_linetype_manual(values = c(poly2 = "solid"), labels = "Quadratic polynomial") +
     labs(x = "Gestational Age (weeks)", y = ylab, color = "Model", linetype = "Model") +
-    theme_classic()
+    th+
+    theme(legend.position = "none")+
+  labs(y= NULL)+
+  geom_vline(xintercept=40, linetype="dashed", size=1.8, colour= "darkgrey")  
 }
 
 p1 <- make_biomarker_plot("pTau217", "time_storage_ptau217",
@@ -595,12 +683,42 @@ p2 <- make_biomarker_plot("NFL", "time_storage_NFL_GFAP",
 p3 <- make_biomarker_plot("GFAP", "time_storage_NFL_GFAP",
                            fit_linear_GFAP_clean, fit_poly2_GFAP_clean, fit_poly3_GFAP_clean)
 
-figure_longitudinal <- p1 / p2 / p3 + plot_layout(axis_titles = "collect", guides = "collect")
-figure_longitudinal
 # ggsave("figure1.png", width = 8, height = 8.5)
+
+unified_visits_plot<-(ptau217_visit + ptau217_v3 + p1 + plot_layout(axes = "collect", widths = c(2,1, 2))) /
+(NFL_visit    + NFL_v3     + p2+ plot_layout(axes = "collect", widths = c(2,1, 2))) /
+(GFAP_visit   + GFAP_v3   + p3+ plot_layout(axes = "collect", widths = c(2,1, 2)))+
+  plot_annotation(tag_levels = 'A') & theme(
+  axis.title = element_text(size = 18),
+  axis.text  = element_text(size = 18)
+) & coord_cartesian(clip = "off")
+
+ggsave("unified_visits_plots.png", unified_visits_plot, width = 17, height = 12, units = "in", dpi = 300)
 ```
 
 # Supplementary material
+
+## Graph highlighting trajectories of biomarker for pts with pathology, ptau217
+
+```{r, echo=F, warning=FALSE, width=8, height=6}
+
+d1 <- data_clean %>%
+  filter(preg_pathology == 1, !is.na(pTau217), !is.na(Visit), !is.na(id_bisc))
+
+d0 <- data_clean %>%
+  filter(preg_pathology == 0, !is.na(pTau217), !is.na(Visit), !is.na(id_bisc))
+
+ggplot(d1, aes(x = Visit, y = log(pTau217), group = id_bisc, colour = id_bisc)) +
+  geom_point() +
+  geom_line() +
+  geom_line(data = d0, aes(x = Visit, y = log(pTau217), group = id_bisc),
+            inherit.aes = FALSE, alpha = 0.1) +
+  th +
+  theme(legend.position = "none")
+
+ggsave("figure_pat.png", width = 8, height = 5)
+
+```
 
 ## Longitudinal regression table
 
